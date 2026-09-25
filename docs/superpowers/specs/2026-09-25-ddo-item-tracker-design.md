@@ -267,6 +267,38 @@ Before checking, the app fetches a small JSON manifest from the owner's GitHub r
 
 If the manifest cannot be fetched or parsed, the app uses the same values compiled into it. If upstream moves its files, editing this manifest fixes every installed copy without a store release.
 
+### 6.4a Alternative under consideration: self-hosted catalog
+
+**Status: undecided.** Sections 6.4 and 6.5 describe the current design. This alternative would replace them if adopted.
+
+A scheduled GitHub Action in the owner's DdoItemTracker repo publishes a ready-made catalog, and the app downloads only from the owner's repo.
+
+**Action (daily, for example 06:00 UTC, after gear-planner's 05:18 UTC run):**
+
+1. Look up the latest upstream commit touching `data/items.json` or `data/sets.json`. Stop if it equals the commit in the currently published catalog.
+2. Download both files pinned to that commit.
+3. Run `tools/CatalogBuilder` (the same `CatalogConverter` and `CatalogValidator` from Core).
+4. If validation passes, publish `catalog.json` (containing `Version.UpstreamCommit`) plus a small `catalog-version.json` (`{ UpstreamCommit, UpstreamCommitDateUtc, BuiltUtc, ItemCount, SetCount }`), for example to a `catalog` branch or as a GitHub Release asset.
+5. If validation fails, publish nothing and fail the run so the owner is notified by GitHub.
+
+**App update flow becomes:**
+
+1. Fetch `catalog-version.json` from the owner's repo. If `UpstreamCommit` matches the loaded catalog, report "Catalog is up to date".
+2. Download `catalog.json`, validate it again on the device (section 6.3), show the summary, and apply as in section 6.5 steps 5 and 6.
+
+**Effect on the design:**
+
+| | Current (6.4 / 6.5) | Self-hosted (6.4a) |
+|---|---|---|
+| App depends on | gear-planner repo layout and format, plus the manifest | the owner's repo only |
+| Upstream moves or reshapes files | edit manifest (move) or ship an app release (format change) | fix the Action; no app change for either |
+| On-device conversion | yes | no, the app only validates |
+| Update manifest (6.4) | needed | removed |
+| Extra moving part | manifest file | the Action and its published output |
+| Permission from illusionistpm | needed to ship their data in the app | same, and also covers republishing it from the owner's repo |
+
+`CatalogConverter` stays in Core either way, because `tools/CatalogBuilder` still builds the built-in catalog shipped in the app.
+
 ### 6.5 Run-time update flow
 
 1. Fetch the manifest (fallback to built-in values).
@@ -324,3 +356,4 @@ Manual UI checklist on Windows and Android before each release: browse and filte
 
 - Permission from illusionistpm before store release (owner action).
 - Final app name and icon.
+- Choose between the upstream manifest (6.4) and the self-hosted catalog (6.4a) before implementing the update feature.
