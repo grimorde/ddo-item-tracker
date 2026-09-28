@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-25
 **Status:** Approved in brainstorming, awaiting written-spec review
-**Author:** Lisa Bowden (with Claude)
+**Author:** grimorde (with Claude)
 
 ## 1. Purpose
 
