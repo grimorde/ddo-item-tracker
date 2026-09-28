@@ -1,0 +1,7 @@
+{
+  "Forbidden Knowledge": [
+    {"affixes":[{"name":"Melee Power","type":"Profane","value":"5"},{"name":"Ranged Power","type":"Profane","value":"5"},{"name":"Universal Spell Power","type":"Profane","value":"10"},{"name":"Spell Focus Mastery","type":"Profane","value":"1"}],"threshold":5},
+    {"affixes":[{"name":"Physical Sheltering","type":"Profane","value":"10"}],"threshold":3},
+    {"affixes":[{"name":"Well Rounded","type":"Profane","value":"1"},{"name":"Accuracy","type":"Profane","value":"1"},{"name":"Deadly","type":"Profane","value":"1"}],"threshold":4}
+  ]
+}
