@@ -80,7 +80,7 @@ public partial class MyItemsViewModel : SessionViewModel
 
         IsEmpty = data.OwnedCopies.Count == 0;
         var (owned, total) = CopyQuery.Summary(data, Session.Catalog);
-        Summary = $"You own {owned:N0} of {total:N0} named items";
+        Summary = $"{owned:N0} of {total:N0} items owned";
     }
 
     partial void OnSelectedServerChanged(string? value) => Refresh();

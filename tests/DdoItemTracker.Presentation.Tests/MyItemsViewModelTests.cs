@@ -38,7 +38,7 @@ public class MyItemsViewModelTests
         var vm = Create(f);
         Assert.True(vm.IsEmpty);
         Assert.Empty(vm.Groups);
-        Assert.Equal("You own 0 of 6 named items", vm.Summary);
+        Assert.Equal("0 of 6 items owned", vm.Summary);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public class MyItemsViewModelTests
         Assert.Equal(
             ["Location not recorded", "Cormyr · Shared Bank", "Cormyr · Grimorde · Bank", "Thrane", "Thrane · Alt"],
             vm.Groups.Select(g => g.Title));
-        Assert.Equal("You own 4 of 6 named items", vm.Summary);
+        Assert.Equal("4 of 6 items owned", vm.Summary);
     }
 
     [Fact]

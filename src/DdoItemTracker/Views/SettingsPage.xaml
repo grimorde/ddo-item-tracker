@@ -3,39 +3,129 @@
     x:Class="DdoItemTracker.Views.SettingsPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:icons="clr-namespace:DdoItemTracker.Helpers"
     xmlns:vm="clr-namespace:DdoItemTracker.Presentation.ViewModels;assembly=DdoItemTracker.Presentation"
     x:DataType="vm:SettingsViewModel"
     Title="Settings">
 
+    <!-- Card and button styling follows the Settings page in DDO Life Tracker. -->
+    <ContentPage.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="BackgroundColor" Value="{DynamicResource CardBackground}" />
+            <Setter Property="Stroke" Value="{DynamicResource CardBorder}" />
+            <Setter Property="StrokeThickness" Value="1" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 10" />
+            <Setter Property="Padding" Value="16,12" />
+        </Style>
+        <Style x:Key="CardTitle" TargetType="Label">
+            <Setter Property="FontSize" Value="18" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="TextColor" Value="{AppThemeBinding Light={DynamicResource GoldAccent}, Dark=White}" />
+        </Style>
+        <Style x:Key="CardButton" TargetType="Button">
+            <Setter Property="HeightRequest" Value="48" />
+            <Setter Property="WidthRequest" Value="260" />
+            <Setter Property="HorizontalOptions" Value="Center" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="BorderWidth" Value="1" />
+            <Setter Property="BorderColor" Value="{DynamicResource GoldAccent}" />
+        </Style>
+        <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource CardButton}">
+            <Setter Property="BackgroundColor" Value="{DynamicResource GoldAccent}" />
+            <Setter Property="TextColor" Value="White" />
+            <Setter Property="FontAttributes" Value="Bold" />
+        </Style>
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource CardButton}">
+            <Setter Property="BackgroundColor" Value="{DynamicResource CardBackground}" />
+            <Setter Property="TextColor" Value="{DynamicResource GoldAccent}" />
+        </Style>
+        <Style x:Key="TertiaryButton" TargetType="Button" BasedOn="{StaticResource CardButton}">
+            <Setter Property="BackgroundColor" Value="{DynamicResource CardBorder}" />
+            <Setter Property="TextColor" Value="{DynamicResource TextPrimary}" />
+        </Style>
+    </ContentPage.Resources>
+
     <ScrollView>
-        <VerticalStackLayout Padding="16" Spacing="10" MaximumWidthRequest="600">
-            <Label Text="Appearance" Style="{StaticResource SectionHeader}" />
-            <Picker x:Name="ThemePicker" SelectedIndexChanged="OnThemeChanged">
-                <Picker.ItemsSource>
-                    <x:Array Type="{x:Type x:String}">
-                        <x:String>System default</x:String>
-                        <x:String>Light</x:String>
-                        <x:String>Dark</x:String>
-                    </x:Array>
-                </Picker.ItemsSource>
-            </Picker>
+        <VerticalStackLayout Padding="16,20" Spacing="24" MaximumWidthRequest="600">
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Appearance" Style="{StaticResource CardTitle}" />
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                        <Border x:Name="SystemOption" Grid.Column="0" Padding="8" HeightRequest="90" StrokeShape="RoundRectangle 10" StrokeThickness="2">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnThemeTapped" CommandParameter="0" />
+                            </Border.GestureRecognizers>
+                            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="8">
+                                <Image HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
+                                    <Image.Source>
+                                        <FontImageSource x:Name="SystemIcon" FontFamily="IconSet" Glyph="{x:Static icons:FontAwesomeIcons.UserGear}" Size="28" />
+                                    </Image.Source>
+                                </Image>
+                                <Label x:Name="SystemLabel" Text="System" FontSize="12" HorizontalOptions="Center" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border x:Name="LightOption" Grid.Column="1" Padding="8" HeightRequest="90" StrokeShape="RoundRectangle 10" StrokeThickness="2">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnThemeTapped" CommandParameter="1" />
+                            </Border.GestureRecognizers>
+                            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="8">
+                                <Image HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
+                                    <Image.Source>
+                                        <FontImageSource x:Name="LightIcon" FontFamily="IconSet" Glyph="{x:Static icons:FontAwesomeIcons.Sun}" Size="28" />
+                                    </Image.Source>
+                                </Image>
+                                <Label x:Name="LightLabel" Text="Light" FontSize="12" HorizontalOptions="Center" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border x:Name="DarkOption" Grid.Column="2" Padding="8" HeightRequest="90" StrokeShape="RoundRectangle 10" StrokeThickness="2">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnThemeTapped" CommandParameter="2" />
+                            </Border.GestureRecognizers>
+                            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="8">
+                                <Image HeightRequest="28" WidthRequest="28" HorizontalOptions="Center">
+                                    <Image.Source>
+                                        <FontImageSource x:Name="DarkIcon" FontFamily="IconSet" Glyph="{x:Static icons:FontAwesomeIcons.Moon}" Size="28" />
+                                    </Image.Source>
+                                </Image>
+                                <Label x:Name="DarkLabel" Text="Dark" FontSize="12" HorizontalOptions="Center" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
 
-            <Label Text="Characters" Style="{StaticResource SectionHeader}" />
-            <Label Text="The characters you can pick from when you record where a copy is held." Style="{StaticResource Secondary}" />
-            <Button Text="Manage characters" Clicked="OnCharactersClicked" />
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Characters" Style="{StaticResource CardTitle}" />
+                    <Label Text="The characters you can pick from when you record where a copy is held." Style="{StaticResource Secondary}" />
+                    <Button Text="Manage characters" Clicked="OnCharactersClicked" Style="{StaticResource PrimaryButton}" />
+                </VerticalStackLayout>
+            </Border>
 
-            <Label Text="Item catalog" Style="{StaticResource SectionHeader}" />
-            <Label Text="{Binding CatalogVersionText}" />
-            <Label Text="Item data comes from the DDO Gear Planner project, which is built from ddowiki." Style="{StaticResource Secondary}" />
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Item catalog" Style="{StaticResource CardTitle}" />
+                    <Label Text="{Binding CatalogVersionText}" />
+                    <Label Text="Item data comes from the DDO Gear Planner project, which is built from ddowiki." Style="{StaticResource Secondary}" />
+                </VerticalStackLayout>
+            </Border>
 
-            <Label Text="Backup" Style="{StaticResource SectionHeader}" />
-            <Button Text="Save a backup" Command="{Binding ExportBackupCommand}" />
-            <Button Text="Share a backup" Command="{Binding ShareBackupCommand}" />
-            <Button Text="Restore backup" Command="{Binding RestoreBackupCommand}" />
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Backup" Style="{StaticResource CardTitle}" />
+                    <Button Text="Save a backup" Command="{Binding ExportBackupCommand}" Style="{StaticResource PrimaryButton}" />
+                    <Button Text="Share a backup" Command="{Binding ShareBackupCommand}" Style="{StaticResource SecondaryButton}" />
+                    <Button Text="Restore backup" Command="{Binding RestoreBackupCommand}" Style="{StaticResource TertiaryButton}" />
+                </VerticalStackLayout>
+            </Border>
 
-            <Label Text="About" Style="{StaticResource SectionHeader}" />
-            <Label x:Name="VersionLabel" />
-            <Button Text="What's new" Clicked="OnWhatsNewClicked" Style="{StaticResource LinkButton}" HorizontalOptions="Start" />
+            <Border Style="{StaticResource Card}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="About" Style="{StaticResource CardTitle}" />
+                    <Label x:Name="VersionLabel" />
+                    <Button Text="What's new" Clicked="OnWhatsNewClicked" Style="{StaticResource LinkButton}" HorizontalOptions="Start" />
+                </VerticalStackLayout>
+            </Border>
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

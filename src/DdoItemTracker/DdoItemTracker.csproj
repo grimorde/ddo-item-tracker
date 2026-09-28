@@ -31,8 +31,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#106881" />
-    <MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#106881" BaseSize="128,128" />
+    <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg_bag_swords.svg" Color="#106881" />
+    <MauiSplashScreen Include="Resources\Splash\splash_bag_swords.svg" Color="#106881" BaseSize="128,128" />
     <MauiImage Include="Resources\Images\*" />
     <MauiImage Update="Resources\Images\dotnet_bot.png" Resize="True" BaseSize="300,185" />
     <MauiFont Include="Resources\Fonts\*" />

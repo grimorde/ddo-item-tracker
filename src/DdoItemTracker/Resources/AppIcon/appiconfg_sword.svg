@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="456" height="456" viewBox="0 0 456 456" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <g transform="translate(-12 -8)">
+        <!-- Sword, drawn upright then turned 45 degrees -->
+        <g transform="rotate(45 228 228)">
+            <path d="M228 80 L258 126 V284 H198 V126 Z" fill="#ffffff" />
+            <rect x="224" y="136" width="8" height="136" rx="4" fill="#106881" />
+            <rect x="168" y="284" width="120" height="20" rx="10" fill="#ffffff" />
+            <rect x="215" y="304" width="26" height="44" fill="#ffffff" />
+            <circle cx="228" cy="358" r="17" fill="#ffffff" />
+        </g>
+        <!-- String from the grip to the tag -->
+        <path d="M158 302 Q200 350 260 301" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" />
+        <!-- Tag -->
+        <g transform="translate(236 292) rotate(20)">
+            <path d="M0 0 L28 -30 H110 Q120 -30 120 -20 V20 Q120 30 110 30 H28 Z" fill="#ffffff" stroke="#106881" stroke-width="8" stroke-linejoin="round" />
+            <circle cx="26" cy="0" r="8" fill="#106881" />
+            <rect x="48" y="-9" width="56" height="6" rx="3" fill="#106881" />
+            <rect x="48" y="4" width="40" height="6" rx="3" fill="#106881" />
+        </g>
+    </g>
+</svg>

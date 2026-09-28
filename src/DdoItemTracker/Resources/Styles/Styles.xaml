@@ -14,7 +14,7 @@
     </Style>
 
     <Style TargetType="Button">
-        <Setter Property="TextColor" Value="{DynamicResource PageBackground}" />
+        <Setter Property="TextColor" Value="White" />
         <Setter Property="BackgroundColor" Value="{DynamicResource GoldAccent}" />
         <Setter Property="FontFamily" Value="OpenSansRegular" />
         <Setter Property="FontSize" Value="14" />

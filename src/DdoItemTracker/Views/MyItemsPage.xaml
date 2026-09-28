@@ -19,7 +19,7 @@
         <Border StrokeShape="RoundRectangle 8" BackgroundColor="{DynamicResource CardBackground}" Padding="8,0">
             <Entry Placeholder="Search your items" Text="{Binding Filters.SearchText}" ClearButtonVisibility="WhileEditing" />
         </Border>
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
             <Label Text="{Binding Summary}" Style="{StaticResource Secondary}" FontSize="14" VerticalOptions="Center" />
             <Button Grid.Column="1" x:Name="FiltersButton" Text="Show filters" Clicked="OnFiltersClicked" Style="{StaticResource LinkButton}" />
         </Grid>

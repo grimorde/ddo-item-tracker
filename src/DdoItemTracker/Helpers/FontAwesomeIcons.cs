@@ -10,4 +10,7 @@ public static class FontAwesomeIcons
     public const string UserPlus = "\uf234";
     public const string FileImport = "\uf56f";
     public const string EllipsisVertical = "\uf142";
+    public const string UserGear = "\uf4fe";
+    public const string Sun = "\uf185";
+    public const string Moon = "\uf186";
 }
