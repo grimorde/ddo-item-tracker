@@ -101,7 +101,6 @@ public sealed class TrackerStoreTests : IDisposable
 
         Assert.Equal(LoadOutcome.Loaded, result.Outcome);
         Assert.Empty(result.Data.Characters);
-        Assert.Empty(result.Data.Folders);
         Assert.Empty(result.Data.OwnedCopies);
     }
 

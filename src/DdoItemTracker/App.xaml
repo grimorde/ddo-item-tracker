@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Application
+    x:Class="DdoItemTracker.App"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:converters="clr-namespace:DdoItemTracker.Converters">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
+                <ResourceDictionary Source="Resources/Styles/LightTheme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <converters:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+            <Style x:Key="SectionHeader" TargetType="Label">
+                <Setter Property="FontSize" Value="16" />
+                <Setter Property="FontAttributes" Value="Bold" />
+                <Setter Property="TextColor" Value="{DynamicResource GoldAccent}" />
+                <Setter Property="Margin" Value="0,8,0,0" />
+            </Style>
+            <Style x:Key="Secondary" TargetType="Label">
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="TextColor" Value="{DynamicResource TextSecondary}" />
+            </Style>
+            <Style x:Key="LinkButton" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="Transparent" />
+                <Setter Property="TextColor" Value="{DynamicResource GoldAccent}" />
+                <Setter Property="Padding" Value="4,0" />
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

@@ -2,13 +2,11 @@ using System.Text.Json;
 
 namespace DdoItemTracker.Core.Import;
 
-public sealed record LifeTrackerCharacter(string Id, string Server, string Name, string? FolderId);
+public sealed record LifeTrackerCharacter(string Id, string Server, string Name);
 
-public sealed record LifeTrackerFolder(string Id, string Name);
+public sealed record LifeTrackerBackup(IReadOnlyList<LifeTrackerCharacter> Characters);
 
-public sealed record LifeTrackerBackup(IReadOnlyList<LifeTrackerCharacter> Characters, IReadOnlyList<LifeTrackerFolder> Folders);
-
-/// <summary>Reads the characters and folders from a DDO Life Tracker backup. Past lives and tomes are ignored.</summary>
+/// <summary>Reads the characters from a DDO Life Tracker backup. Folders, past lives and tomes are ignored.</summary>
 public static class LifeTrackerBackupReader
 {
     public const string NotALifeTrackerBackup = "This file isn't a DDO Life Tracker backup.";
@@ -29,7 +27,6 @@ public static class LifeTrackerBackupReader
         {
             var root = doc.RootElement;
             JsonElement characters;
-            JsonElement? folders = null;
 
             if (root.ValueKind == JsonValueKind.Array)
             {
@@ -39,7 +36,6 @@ public static class LifeTrackerBackupReader
             {
                 if (TryGet(root, "OwnedCopies", out _))
                     throw new InvalidDataException("This is a DDO Item Tracker backup. Use Restore backup in Settings instead.");
-                if (TryGet(root, "Folders", out var f) && f.ValueKind == JsonValueKind.Array) folders = f;
             }
             else
             {
@@ -54,24 +50,10 @@ public static class LifeTrackerBackupReader
                 characterList.Add(new LifeTrackerCharacter(
                     Str(c, "Id") ?? string.Empty,
                     Str(c, "Server") ?? string.Empty,
-                    Str(c, "Name") ?? string.Empty,
-                    NullIfBlank(Str(c, "FolderId"))));
+                    Str(c, "Name") ?? string.Empty));
             }
 
-            var folderList = new List<LifeTrackerFolder>();
-            if (folders is { } fs)
-            {
-                foreach (var f in fs.EnumerateArray())
-                {
-                    if (f.ValueKind != JsonValueKind.Object) continue;
-                    var id = Str(f, "Id");
-                    var name = Str(f, "Name");
-                    if (!string.IsNullOrWhiteSpace(id) && !string.IsNullOrWhiteSpace(name))
-                        folderList.Add(new LifeTrackerFolder(id, name.Trim()));
-                }
-            }
-
-            return new LifeTrackerBackup(characterList, folderList);
+            return new LifeTrackerBackup(characterList);
         }
     }
 
@@ -92,5 +74,4 @@ public static class LifeTrackerBackupReader
     private static string? Str(JsonElement obj, string name) =>
         TryGet(obj, name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
 
-    private static string? NullIfBlank(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
 }

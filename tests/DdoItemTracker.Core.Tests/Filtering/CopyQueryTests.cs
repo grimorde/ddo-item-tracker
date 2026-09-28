@@ -14,21 +14,36 @@ public class CopyQueryTests
         var data = new TrackerData();
         var grim = TrackerOperations.AddCharacter(data, "Cormyr", "Grimorde");
         var alt = TrackerOperations.AddCharacter(data, "Thrane", "Alt");
-        TrackerOperations.AddCopy(data, new OwnedCopy { ItemKey = "Chains|8|Belt", ItemName = "Chains", Server = "Cormyr", Storage = StorageType.Bank, CharacterId = grim.Id });
-        TrackerOperations.AddCopy(data, new OwnedCopy { ItemKey = "Absorption Gauntlet|18|Gloves", ItemName = "Absorption Gauntlet", Server = "Cormyr", Storage = StorageType.SharedBank });
-        TrackerOperations.AddCopy(data, new OwnedCopy { ItemKey = "Chains|8|Belt", ItemName = "Chains", Server = "Thrane", Storage = StorageType.Equipped, CharacterId = alt.Id });
-        TrackerOperations.AddCopy(data, new OwnedCopy { ItemKey = "Retired Ring|5|Ring", ItemName = "Retired Ring", Server = "Thrane", Storage = StorageType.SharedBank });
+        void Add(string key, string name, string? server = null, string? characterId = null, StorageType? storage = null) =>
+            TrackerOperations.AddCopy(data, new OwnedCopy { ItemKey = key, ItemName = name, Server = server, CharacterId = characterId, Storage = storage });
+        Add("Chains|8|Belt", "Chains", "Cormyr", grim.Id, StorageType.Bank);
+        Add("Absorption Gauntlet|18|Gloves", "Absorption Gauntlet", "Cormyr", storage: StorageType.SharedBank);
+        Add("Chains|8|Belt", "Chains", "Thrane", alt.Id, StorageType.Inventory);
+        Add("Retired Ring|5|Ring", "Retired Ring", "Thrane", storage: StorageType.SharedBank);
+        Add("Adherent's Pendant|11|Necklace", "Adherent's Pendant");
+        Add("Chains|8|Necklace", "Chains", "Cormyr");
+        Add("Cloak of Winter's End (level 4)|4|Cloak", "Cloak of Winter's End (level 4)", "Cormyr", grim.Id);
         return (data, grim, alt);
     }
 
+    private static string Describe(OwnedCopyRow r) =>
+        $"{r.Copy.Server ?? "-"}/{r.HolderName ?? "-"}/{r.Copy.Storage?.ToString() ?? "-"}/{r.ItemName}";
+
     [Fact]
-    public void Apply_SortsByServerThenSharedBankThenHolder()
+    public void Apply_OrdersByLocationLevel()
     {
         var (data, _, _) = Setup();
-        var rows = CopyQuery.Apply(data, Index, new CopyFilter());
         Assert.Equal(
-            ["Cormyr/Shared Bank/Absorption Gauntlet", "Cormyr/Grimorde/Chains", "Thrane/Shared Bank/Retired Ring", "Thrane/Alt/Chains"],
-            rows.Select(r => $"{r.Copy.Server}/{r.HolderName}/{r.ItemName}"));
+            [
+                "-/-/-/Adherent's Pendant",
+                "Cormyr/-/-/Chains",
+                "Cormyr/Shared Bank/SharedBank/Absorption Gauntlet",
+                "Cormyr/Grimorde/-/Cloak of Winter's End (level 4)",
+                "Cormyr/Grimorde/Bank/Chains",
+                "Thrane/Shared Bank/SharedBank/Retired Ring",
+                "Thrane/Alt/Inventory/Chains",
+            ],
+            CopyQuery.Apply(data, Index, new CopyFilter()).Select(Describe));
     }
 
     [Fact]
@@ -36,8 +51,23 @@ public class CopyQueryTests
     {
         var (data, grim, _) = Setup();
         Assert.Equal(2, CopyQuery.Apply(data, Index, new CopyFilter { Server = "Thrane" }).Count);
-        Assert.Single(CopyQuery.Apply(data, Index, new CopyFilter { CharacterId = grim.Id }));
+        Assert.Equal(2, CopyQuery.Apply(data, Index, new CopyFilter { CharacterId = grim.Id }).Count);
         Assert.Equal(2, CopyQuery.Apply(data, Index, new CopyFilter { Storage = StorageType.SharedBank }).Count);
+    }
+
+    [Fact]
+    public void NoServer_KeepsOnlyCopiesWithoutAServer()
+    {
+        var (data, _, _) = Setup();
+        Assert.Equal("Adherent's Pendant", Assert.Single(CopyQuery.Apply(data, Index, new CopyFilter { NoServer = true })).ItemName);
+    }
+
+    [Fact]
+    public void NoStorage_KeepsOnlyCopiesWithoutAStorage()
+    {
+        var (data, _, _) = Setup();
+        Assert.Equal(3, CopyQuery.Apply(data, Index, new CopyFilter { NoStorage = true }).Count);
+        Assert.Single(CopyQuery.Apply(data, Index, new CopyFilter { NoStorage = true, Server = "Cormyr", CharacterId = null, Item = new ItemFilter { Search = "cloak" } }));
     }
 
     [Fact]
@@ -54,24 +84,13 @@ public class CopyQueryTests
     {
         var (data, _, _) = Setup();
         Assert.Single(CopyQuery.Apply(data, Index, new CopyFilter { Item = new ItemFilter { Search = "retired" } }));
-        Assert.DoesNotContain(
-            CopyQuery.Apply(data, Index, new CopyFilter { Item = new ItemFilter { Slot = "Ring" } }),
-            r => !r.IsInCatalog);
-    }
-
-    [Fact]
-    public void ItemFilters_ApplyToCatalogCopies()
-    {
-        var (data, _, _) = Setup();
-        var rows = CopyQuery.Apply(data, Index, new CopyFilter { Item = new ItemFilter { Slot = "Belt" } });
-        Assert.Equal(2, rows.Count);
-        Assert.All(rows, r => Assert.Equal("Chains", r.ItemName));
+        Assert.DoesNotContain(CopyQuery.Apply(data, Index, new CopyFilter { Item = new ItemFilter { Slot = "Ring" } }), r => !r.IsInCatalog);
     }
 
     [Fact]
     public void Summary_CountsDistinctCatalogItemsOwned()
     {
         var (data, _, _) = Setup();
-        Assert.Equal((2, Index.Catalog.Items.Count), CopyQuery.Summary(data, Index));
+        Assert.Equal((5, Index.Catalog.Items.Count), CopyQuery.Summary(data, Index));
     }
 }

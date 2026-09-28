@@ -4,6 +4,9 @@ namespace DdoItemTracker.Core.Tests.Ownership;
 
 public class TrackerOperationsTests
 {
+    private static OwnedCopy Copy(string key = "A|1|Ring", string? server = null, string? characterId = null, StorageType? storage = null) =>
+        new() { ItemKey = key, ItemName = key.Split('|')[0], Server = server, CharacterId = characterId, Storage = storage };
+
     [Fact]
     public void Servers_AreTheFourLiveWorlds()
     {
@@ -17,8 +20,7 @@ public class TrackerOperationsTests
     {
         var data = new TrackerData();
         var c = TrackerOperations.AddCharacter(data, "cormyr", "  Grimorde ");
-        Assert.Equal("Cormyr", c.Server);
-        Assert.Equal("Grimorde", c.Name);
+        Assert.Equal(("Cormyr", "Grimorde"), (c.Server, c.Name));
         Assert.Single(data.Characters);
     }
 
@@ -65,8 +67,8 @@ public class TrackerOperationsTests
     {
         var data = new TrackerData();
         var grim = TrackerOperations.AddCharacter(data, "Cormyr", "Grimorde");
-        TrackerOperations.AddCopy(data, new OwnedCopy { ItemKey = "A|1|Ring", ItemName = "A", Server = "Cormyr", Storage = StorageType.Bank, CharacterId = grim.Id });
-        TrackerOperations.AddCopy(data, new OwnedCopy { ItemKey = "B|1|Ring", ItemName = "B", Server = "Cormyr", Storage = StorageType.SharedBank });
+        TrackerOperations.AddCopy(data, Copy("A|1|Ring", "Cormyr", grim.Id, StorageType.Bank));
+        TrackerOperations.AddCopy(data, Copy("B|1|Ring", "Cormyr", storage: StorageType.SharedBank));
 
         TrackerOperations.DeleteCharacter(data, grim.Id, CharacterCopyDisposal.DeleteCopies);
 
@@ -75,51 +77,33 @@ public class TrackerOperationsTests
     }
 
     [Fact]
-    public void DeleteCharacter_MoveToSharedBank_KeepsCopiesOnSameServer()
+    public void DeleteCharacter_KeepOnServer_KeepsCopiesWithServerOnly()
     {
         var data = new TrackerData();
         var grim = TrackerOperations.AddCharacter(data, "Thrane", "Grimorde");
-        TrackerOperations.AddCopy(data, new OwnedCopy { ItemKey = "A|1|Ring", ItemName = "A", Server = "Thrane", Storage = StorageType.Equipped, CharacterId = grim.Id });
+        TrackerOperations.AddCopy(data, Copy("A|1|Ring", "Thrane", grim.Id, StorageType.Inventory));
 
-        TrackerOperations.DeleteCharacter(data, grim.Id, CharacterCopyDisposal.MoveToSharedBank);
+        TrackerOperations.DeleteCharacter(data, grim.Id, CharacterCopyDisposal.KeepOnServer);
 
         var copy = Assert.Single(data.OwnedCopies);
-        Assert.Null(copy.CharacterId);
-        Assert.Equal(StorageType.SharedBank, copy.Storage);
-        Assert.Equal("Thrane", copy.Server);
+        Assert.Equal(("Thrane", (string?)null, (StorageType?)null), (copy.Server, copy.CharacterId, copy.Storage));
         Assert.Null(OwnershipRules.ValidateCopy(data, copy));
     }
 
     [Fact]
-    public void DeleteFolder_UnfilesItsCharacters()
+    public void AddCopy_WithNoLocation_IsStored()
     {
         var data = new TrackerData();
-        var folder = TrackerOperations.AddFolder(data, "Mains");
-        var grim = TrackerOperations.AddCharacter(data, "Cormyr", "Grimorde", folder.Id);
-
-        TrackerOperations.DeleteFolder(data, folder.Id);
-
-        Assert.Empty(data.Folders);
-        Assert.Null(grim.FolderId);
-    }
-
-    [Fact]
-    public void MoveCharacterToFolder_UnknownFolder_IsRejected()
-    {
-        var data = new TrackerData();
-        var grim = TrackerOperations.AddCharacter(data, "Cormyr", "Grimorde");
-        Assert.Throws<TrackerRuleException>(() => TrackerOperations.MoveCharacterToFolder(data, grim.Id, "nope"));
-        var folder = TrackerOperations.AddFolder(data, "Mains");
-        TrackerOperations.MoveCharacterToFolder(data, grim.Id, folder.Id);
-        Assert.Equal(folder.Id, grim.FolderId);
+        var copy = TrackerOperations.AddCopy(data, Copy());
+        Assert.Equal(((string?)null, (string?)null, (StorageType?)null), (copy.Server, copy.CharacterId, copy.Storage));
     }
 
     [Fact]
     public void AddCopy_SeveralCopiesOfOneItem_AreAllKept()
     {
         var data = new TrackerData();
-        for (var i = 0; i < 2; i++)
-            TrackerOperations.AddCopy(data, new OwnedCopy { ItemKey = "A|1|Ring", ItemName = "A", Server = "Cormyr", Storage = StorageType.SharedBank });
+        TrackerOperations.AddCopy(data, Copy());
+        TrackerOperations.AddCopy(data, Copy());
         Assert.Equal(2, data.OwnedCopies.Count);
     }
 
@@ -127,19 +111,23 @@ public class TrackerOperationsTests
     public void AddCopy_NormalisesServerAndNoteAndStampsTime()
     {
         var data = new TrackerData();
-        var copy = TrackerOperations.AddCopy(data, new OwnedCopy { ItemKey = "A|1|Ring", ItemName = "A", Server = "cormyr", Storage = StorageType.SharedBank, Note = "   " });
+        var copy = Copy(server: "cormyr");
+        copy.Note = "   ";
+        TrackerOperations.AddCopy(data, copy);
         Assert.Equal("Cormyr", copy.Server);
         Assert.Null(copy.Note);
         Assert.NotEqual(default, copy.AddedUtc);
+
+        var blank = TrackerOperations.AddCopy(data, Copy(server: "  "));
+        Assert.Null(blank.Server);
     }
 
     [Fact]
     public void AddCopy_Invalid_IsRejectedAndNotStored()
     {
         var data = new TrackerData();
-        var ex = Assert.Throws<TrackerRuleException>(() =>
-            TrackerOperations.AddCopy(data, new OwnedCopy { ItemKey = "A|1|Ring", ItemName = "A", Server = "Cormyr", Storage = StorageType.Bank }));
-        Assert.Equal("Choose a character.", ex.Message);
+        var ex = Assert.Throws<TrackerRuleException>(() => TrackerOperations.AddCopy(data, Copy(server: "Cormyr", storage: StorageType.Bank)));
+        Assert.Equal("Choose a character for Inventory or Bank.", ex.Message);
         Assert.Empty(data.OwnedCopies);
     }
 
@@ -148,20 +136,26 @@ public class TrackerOperationsTests
     {
         var data = new TrackerData();
         var grim = TrackerOperations.AddCharacter(data, "Cormyr", "Grimorde");
-        var original = TrackerOperations.AddCopy(data, new OwnedCopy { ItemKey = "A|1|Ring", ItemName = "A", Server = "Cormyr", Storage = StorageType.SharedBank });
+        var original = TrackerOperations.AddCopy(data, Copy());
 
-        Assert.Throws<TrackerRuleException>(() => TrackerOperations.UpdateCopy(data, new OwnedCopy { Id = original.Id, ItemKey = "A|1|Ring", ItemName = "A", Server = "Cormyr", Storage = StorageType.Bank }));
+        var bad = Copy(server: "Cormyr", storage: StorageType.Bank);
+        bad.Id = original.Id;
+        Assert.Throws<TrackerRuleException>(() => TrackerOperations.UpdateCopy(data, bad));
         Assert.Same(original, Assert.Single(data.OwnedCopies));
 
-        TrackerOperations.UpdateCopy(data, new OwnedCopy { Id = original.Id, ItemKey = "A|1|Ring", ItemName = "A", Server = "Cormyr", Storage = StorageType.Bank, CharacterId = grim.Id, AddedUtc = original.AddedUtc });
-        Assert.Equal(StorageType.Bank, Assert.Single(data.OwnedCopies).Storage);
+        var good = Copy(server: "Cormyr", characterId: grim.Id, storage: StorageType.Bank);
+        good.Id = original.Id;
+        TrackerOperations.UpdateCopy(data, good);
+        var stored = Assert.Single(data.OwnedCopies);
+        Assert.Equal((StorageType?)StorageType.Bank, stored.Storage);
+        Assert.Equal(original.AddedUtc, stored.AddedUtc);
     }
 
     [Fact]
     public void RemoveCopy_RemovesById()
     {
         var data = new TrackerData();
-        var copy = TrackerOperations.AddCopy(data, new OwnedCopy { ItemKey = "A|1|Ring", ItemName = "A", Server = "Cormyr", Storage = StorageType.SharedBank });
+        var copy = TrackerOperations.AddCopy(data, Copy());
         TrackerOperations.RemoveCopy(data, copy.Id);
         Assert.Empty(data.OwnedCopies);
     }

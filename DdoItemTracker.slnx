@@ -1,9 +1,12 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/DdoItemTracker.Core/DdoItemTracker.Core.csproj" />
+    <Project Path="src/DdoItemTracker.Presentation/DdoItemTracker.Presentation.csproj" />
+    <Project Path="src/DdoItemTracker/DdoItemTracker.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DdoItemTracker.Core.Tests/DdoItemTracker.Core.Tests.csproj" />
+    <Project Path="tests/DdoItemTracker.Presentation.Tests/DdoItemTracker.Presentation.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/CatalogBuilder/CatalogBuilder.csproj" />

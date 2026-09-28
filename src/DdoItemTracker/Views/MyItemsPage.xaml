@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DdoItemTracker.Views.MyItemsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:DdoItemTracker.Presentation.ViewModels;assembly=DdoItemTracker.Presentation"
+    xmlns:views="clr-namespace:DdoItemTracker.Views"
+    xmlns:icons="clr-namespace:DdoItemTracker.Helpers"
+    x:DataType="vm:MyItemsViewModel"
+    Title="My Items">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Settings" Clicked="OnSettingsClicked"
+                     IconImageSource="{FontImageSource FontFamily=IconSet, Glyph={x:Static icons:FontAwesomeIcons.Gears}, Size=22, Color={DynamicResource GoldAccent}}" />
+    </ContentPage.ToolbarItems>
+
+    <Grid x:Name="Split" ColumnDefinitions="*,0">
+    <Grid RowDefinitions="Auto,Auto,Auto,*" Padding="16,8" RowSpacing="8">
+        <Border StrokeShape="RoundRectangle 8" BackgroundColor="{DynamicResource CardBackground}" Padding="8,0">
+            <Entry Placeholder="Search your items" Text="{Binding Filters.SearchText}" ClearButtonVisibility="WhileEditing" />
+        </Border>
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+            <Label Text="{Binding Summary}" Style="{StaticResource Secondary}" FontSize="14" VerticalOptions="Center" />
+            <Button Grid.Column="1" x:Name="FiltersButton" Text="Show filters" Clicked="OnFiltersClicked" Style="{StaticResource LinkButton}" />
+        </Grid>
+        <VerticalStackLayout Grid.Row="2" x:Name="FilterArea" IsVisible="False" Spacing="4">
+            <Grid ColumnDefinitions="100,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="4">
+                <Label Text="Server" VerticalOptions="Center" />
+                <Picker Grid.Column="1" ItemsSource="{Binding ServerOptions}" SelectedItem="{Binding SelectedServer}" />
+                <Label Grid.Row="1" Text="Character" VerticalOptions="Center" />
+                <Picker Grid.Row="1" Grid.Column="1" ItemsSource="{Binding CharacterOptions}" SelectedItem="{Binding SelectedCharacter}" />
+                <Label Grid.Row="2" Text="Stored in" VerticalOptions="Center" />
+                <Picker Grid.Row="2" Grid.Column="1" ItemsSource="{Binding StorageOptions}" SelectedItem="{Binding SelectedStorage}" />
+                <HorizontalStackLayout Grid.Row="3" Grid.ColumnSpan="2" Spacing="4">
+                    <CheckBox IsChecked="{Binding NotInCatalogOnly}" />
+                    <Label Text="Only items no longer in the catalog" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+            </Grid>
+            <views:ItemFilterView BindingContext="{Binding Filters}" ShowOwnership="False" />
+        </VerticalStackLayout>
+        <Label Grid.Row="3" IsVisible="{Binding IsEmpty}" Margin="0,24" HorizontalTextAlignment="Center"
+               Text="You haven't recorded any items yet. Find an item in the Catalog and tap I have one." />
+        <views:CopyGroupsView Grid.Row="3" x:Name="CopyList" CopySelected="OnCopySelected" IsVisible="{Binding IsEmpty, Converter={StaticResource InvertedBoolConverter}}" />
+    </Grid>
+    <views:ItemDetailView Grid.Column="1" x:Name="DetailPane" IsVisible="False" />
+    </Grid>
+</ContentPage>

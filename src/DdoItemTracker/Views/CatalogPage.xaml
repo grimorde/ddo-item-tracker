@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DdoItemTracker.Views.CatalogPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:DdoItemTracker.Presentation.ViewModels;assembly=DdoItemTracker.Presentation"
+    xmlns:views="clr-namespace:DdoItemTracker.Views"
+    xmlns:icons="clr-namespace:DdoItemTracker.Helpers"
+    x:DataType="vm:CatalogViewModel"
+    Title="Catalog">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Settings" Clicked="OnSettingsClicked"
+                     IconImageSource="{FontImageSource FontFamily=IconSet, Glyph={x:Static icons:FontAwesomeIcons.Gears}, Size=22, Color={DynamicResource GoldAccent}}" />
+    </ContentPage.ToolbarItems>
+
+    <Grid x:Name="Split" ColumnDefinitions="*,0">
+        <Grid RowDefinitions="Auto,Auto,Auto,*" Padding="16,8" RowSpacing="8">
+            <Border StrokeShape="RoundRectangle 8" BackgroundColor="{DynamicResource CardBackground}" Padding="8,0">
+                <Entry Placeholder="Search item names" Text="{Binding Filters.SearchText}" ClearButtonVisibility="WhileEditing" />
+            </Border>
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+                <Label Text="{Binding Summary}" Style="{StaticResource Secondary}" FontSize="14" VerticalOptions="Center" />
+                <Button Grid.Column="1" x:Name="FiltersButton" Text="Show filters" Clicked="OnFiltersClicked" Style="{StaticResource LinkButton}" />
+            </Grid>
+            <views:ItemFilterView Grid.Row="2" x:Name="FilterPanel" BindingContext="{Binding Filters}" IsVisible="False" />
+            <CollectionView Grid.Row="3" x:Name="ItemList" ItemsSource="{Binding Results}" SelectionMode="Single" SelectionChanged="OnItemSelected">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ItemRow">
+                        <Grid ColumnDefinitions="*,Auto" Padding="4,8">
+                            <VerticalStackLayout>
+                                <Label Text="{Binding Name}" FontSize="16" />
+                                <Label Text="{Binding Subtitle}" Style="{StaticResource Secondary}" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="{Binding Badge}" TextColor="{DynamicResource Success}" FontAttributes="Bold" VerticalOptions="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.EmptyView>
+                    <Label Text="No items match these filters." HorizontalOptions="Center" Margin="0,24" />
+                </CollectionView.EmptyView>
+            </CollectionView>
+        </Grid>
+        <views:ItemDetailView Grid.Column="1" x:Name="DetailPane" IsVisible="False" />
+    </Grid>
+</ContentPage>

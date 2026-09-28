@@ -81,4 +81,13 @@ public class ItemQueryTests
         Assert.Equal(2, ItemQuery.OwnedCounts(data)["Chains|8|Belt"]);
         Assert.Equal(1, ItemQuery.OwnedCounts(data, "Thrane")["Chains|8|Belt"]);
     }
+
+    [Fact]
+    public void Ownership_ScopedToServer_IgnoresCopiesWithNoServer()
+    {
+        var data = new TrackerData();
+        TrackerOperations.AddCopy(data, new OwnedCopy { ItemKey = "Chains|8|Belt", ItemName = "Chains" });
+        Assert.Single(Keys(new ItemFilter { Ownership = OwnershipFilter.Owned }, data));
+        Assert.Empty(Keys(new ItemFilter { Ownership = OwnershipFilter.Owned, OwnershipServer = "Cormyr" }, data));
+    }
 }

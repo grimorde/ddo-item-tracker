@@ -135,47 +135,26 @@ public static class LifeTrackerImporter
     public static LifeTrackerImportPlan Apply(TrackerData data, LifeTrackerBackup backup)
     {
         var plan = Plan(data, backup);
-        var folderNames = backup.Folders.ToDictionary(f => f.Id, f => f.Name, StringComparer.Ordinal);
-
         foreach (var entry in plan.Entries)
         {
-            if (entry.Action is not (LifeTrackerImportAction.Add or LifeTrackerImportAction.Update)) continue;
             var source = entry.Source;
-            var folderId = source.FolderId is { } f && folderNames.TryGetValue(f, out var folderName)
-                ? FindOrCreateFolder(data, folderName)
-                : null;
             var lifeTrackerId = source.Id.Length > 0 ? source.Id : null;
-
             if (entry.Action == LifeTrackerImportAction.Add)
             {
                 data.Characters.Add(new Character
                 {
                     Server = Servers.Canonical(source.Server)!,
                     Name = source.Name.Trim(),
-                    FolderId = folderId,
                     LifeTrackerId = lifeTrackerId,
                 });
             }
-            else
+            else if (entry.Action == LifeTrackerImportAction.Update)
             {
                 var character = data.Characters.First(c => c.Id == entry.ExistingCharacterId);
                 character.Name = source.Name.Trim();
                 character.LifeTrackerId = lifeTrackerId ?? character.LifeTrackerId;
-                if (folderId is not null) character.FolderId = folderId;
             }
         }
-
         return plan;
-    }
-
-    private static string FindOrCreateFolder(TrackerData data, string name)
-    {
-        var folder = data.Folders.FirstOrDefault(f => TrackerOperations.IsSameName(f.Name, name));
-        if (folder is null)
-        {
-            folder = new Folder { Name = name };
-            data.Folders.Add(folder);
-        }
-        return folder.Id;
     }
 }

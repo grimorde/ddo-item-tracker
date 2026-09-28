@@ -65,7 +65,6 @@ public sealed class TrackerStore(string directoryPath, TimeProvider? clock = nul
             var data = JsonSerializer.Deserialize<TrackerData>(json, TrackerJson.Options);
             if (data is null) return null;
             data.Characters ??= [];
-            data.Folders ??= [];
             data.OwnedCopies ??= [];
             return data;
         }

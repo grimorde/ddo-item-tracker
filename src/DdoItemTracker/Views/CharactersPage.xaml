@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DdoItemTracker.Views.CharactersPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:DdoItemTracker.Presentation.ViewModels;assembly=DdoItemTracker.Presentation"
+    xmlns:icons="clr-namespace:DdoItemTracker.Helpers"
+    x:DataType="vm:CharactersViewModel"
+    Title="Characters">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Add character" Command="{Binding AddCharacterCommand}"
+                     IconImageSource="{FontImageSource FontFamily=IconSet, Glyph={x:Static icons:FontAwesomeIcons.UserPlus}, Size=22, Color={DynamicResource GoldAccent}}" />
+        <ToolbarItem Text="Import from DDO Life Tracker" Command="{Binding ImportFromLifeTrackerCommand}"
+                     IconImageSource="{FontImageSource FontFamily=IconSet, Glyph={x:Static icons:FontAwesomeIcons.FileImport}, Size=22, Color={DynamicResource GoldAccent}}" />
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="Auto,*" Padding="16,8" RowSpacing="8">
+        <Label Text="Characters you add here can be chosen when you record where a copy is held. You don't need any to track items."
+               Style="{StaticResource Secondary}" FontSize="14" />
+
+        <VerticalStackLayout Grid.Row="1" IsVisible="{Binding IsEmpty}" Spacing="12" Margin="0,24" HorizontalOptions="Center">
+            <Label Text="No characters yet." HorizontalTextAlignment="Center" />
+            <Button Text="Add character" Command="{Binding AddCharacterCommand}" />
+            <Button Text="Import from DDO Life Tracker" Command="{Binding ImportFromLifeTrackerCommand}" Style="{StaticResource LinkButton}" />
+        </VerticalStackLayout>
+
+        <CollectionView Grid.Row="1" ItemsSource="{Binding Groups}" IsGrouped="True" SelectionMode="None"
+                        IsVisible="{Binding IsEmpty, Converter={StaticResource InvertedBoolConverter}}">
+            <CollectionView.GroupHeaderTemplate>
+                <DataTemplate x:DataType="vm:CharacterGroup">
+                    <Label Text="{Binding Server}" Style="{StaticResource SectionHeader}" Padding="4,8,4,4" />
+                </DataTemplate>
+            </CollectionView.GroupHeaderTemplate>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="vm:CharacterRow">
+                    <Grid ColumnDefinitions="*,Auto" Padding="4,6">
+                        <VerticalStackLayout VerticalOptions="Center">
+                            <Label Text="{Binding Name}" FontSize="16" />
+                            <Label Text="{Binding Details}" Style="{StaticResource Secondary}" />
+                        </VerticalStackLayout>
+                        <ImageButton Grid.Column="1" Clicked="OnMoreClicked" Padding="12"
+                                     Source="{FontImageSource FontFamily=IconSet, Glyph={x:Static icons:FontAwesomeIcons.EllipsisVertical}, Size=18, Color={DynamicResource GoldAccent}}" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

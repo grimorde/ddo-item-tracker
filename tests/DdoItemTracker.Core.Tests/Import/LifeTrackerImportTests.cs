@@ -20,12 +20,11 @@ public class LifeTrackerImportTests
         """;
 
     [Fact]
-    public void Parse_ReadsCharactersAndFolders_IgnoringPastLives()
+    public void Parse_ReadsCharacters_IgnoringFoldersAndPastLives()
     {
         var backup = LifeTrackerBackupReader.Parse(Backup);
         Assert.Equal(3, backup.Characters.Count);
-        Assert.Equal(new LifeTrackerCharacter("a1", "Cormyr", "Grimorde", "f1"), backup.Characters[0]);
-        Assert.Equal(2, backup.Folders.Count);
+        Assert.Equal(new LifeTrackerCharacter("a1", "Cormyr", "Grimorde"), backup.Characters[0]);
     }
 
     [Fact]
@@ -33,7 +32,6 @@ public class LifeTrackerImportTests
     {
         var backup = LifeTrackerBackupReader.Parse("""[{ "Id": "a1", "Server": "Cormyr", "Name": "Grimorde" }]""");
         Assert.Single(backup.Characters);
-        Assert.Empty(backup.Folders);
     }
 
     [Fact]
@@ -76,16 +74,13 @@ public class LifeTrackerImportTests
     }
 
     [Fact]
-    public void Apply_AddsCharactersWithLifeTrackerIdAndUsedFoldersOnly()
+    public void Apply_AddsCharactersWithLifeTrackerId()
     {
         var data = new TrackerData();
         LifeTrackerImporter.Apply(data, LifeTrackerBackupReader.Parse(Backup));
 
-        var grim = data.Characters.Single(c => c.Name == "Grimorde");
-        Assert.Equal("a1", grim.LifeTrackerId);
-        Assert.Equal("Mains", data.Folders.Single(f => f.Id == grim.FolderId).Name);
+        Assert.Equal("a1", data.Characters.Single(c => c.Name == "Grimorde").LifeTrackerId);
         Assert.Equal("Thrane", data.Characters.Single(c => c.Name == "Alt Two").Server);
-        Assert.DoesNotContain(data.Folders, f => f.Name == "Unused");
     }
 
     [Fact]
@@ -98,7 +93,6 @@ public class LifeTrackerImportTests
         var second = LifeTrackerImporter.Apply(data, backup);
 
         Assert.Equal(2, data.Characters.Count);
-        Assert.Single(data.Folders);
         Assert.Equal(2, second.UpdateCount);
     }
 

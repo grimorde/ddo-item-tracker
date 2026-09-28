@@ -10,8 +10,7 @@ public class TrackerBackupServiceTests
     private static TrackerData Sample()
     {
         var data = new TrackerData();
-        var folder = TrackerOperations.AddFolder(data, "Mains");
-        var grim = TrackerOperations.AddCharacter(data, "Cormyr", "Grimorde", folder.Id);
+        var grim = TrackerOperations.AddCharacter(data, "Cormyr", "Grimorde");
         TrackerOperations.AddCopy(data, new OwnedCopy { ItemKey = "Chains|8|Belt", ItemName = "Chains", Server = "Cormyr", Storage = StorageType.Bank, CharacterId = grim.Id });
         TrackerOperations.AddCopy(data, new OwnedCopy { ItemKey = "A|1|Ring", ItemName = "A", Server = "Thrane", Storage = StorageType.SharedBank });
         return data;
@@ -31,7 +30,7 @@ public class TrackerBackupServiceTests
         var result = TrackerBackupService.Import(target, backup, ImportMode.Replace);
 
         Assert.Equal(Snapshot(source), Snapshot(target));
-        Assert.Equal(new BackupImportResult(3, 0, 0), result); // 1 character + 2 copies; folders aren't counted
+        Assert.Equal(new BackupImportResult(3, 0, 0), result); // 1 character + 2 copies
         Assert.Equal(Now, backup.ExportedUtc);
     }
 
@@ -91,23 +90,11 @@ public class TrackerBackupServiceTests
     }
 
     [Fact]
-    public void CharacterPointingAtMissingFolder_IsUnfiled()
-    {
-        var backup = TrackerBackupService.Parse(TrackerBackupService.Export(Sample(), Now));
-        backup.Folders.Clear();
-        var target = new TrackerData();
-
-        TrackerBackupService.Import(target, backup, ImportMode.Replace);
-
-        Assert.Null(Assert.Single(target.Characters).FolderId);
-    }
-
-    [Fact]
     public void Parse_LifeTrackerBackup_PointsToTheRightImport()
     {
         const string lifeTracker = """{"SchemaVersion":2,"Characters":[{"Id":"a1","Server":"Cormyr","Name":"Grimorde"}],"Folders":[]}""";
         var ex = Assert.Throws<InvalidDataException>(() => TrackerBackupService.Parse(lifeTracker));
-        Assert.Equal("This file isn't a DDO Item Tracker backup. To bring in characters from DDO Life Tracker, use Import from DDO Life Tracker on the Characters page.", ex.Message);
+        Assert.Equal("This file isn't a DDO Item Tracker backup. To bring in characters from DDO Life Tracker, use Import from DDO Life Tracker in Settings, under Characters.", ex.Message);
     }
 
     [Theory]
@@ -156,11 +143,25 @@ public class TrackerBackupServiceTests
     public void Parse_DropsNullRecordsAndFillsMissingIds()
     {
         var backup = TrackerBackupService.Parse("""
-            {"SchemaVersion":1,"Characters":[null,{"Id":null,"Server":"Cormyr","Name":"NoId"}],"Folders":[null],"OwnedCopies":[null]}
+            {"SchemaVersion":1,"Characters":[null,{"Id":null,"Server":"Cormyr","Name":"NoId"}],"OwnedCopies":[null]}
             """);
 
         Assert.False(string.IsNullOrWhiteSpace(Assert.Single(backup.Characters).Id));
-        Assert.Empty(backup.Folders);
         Assert.Empty(backup.OwnedCopies!);
+    }
+
+    [Fact]
+    public void RoundTrip_KeepsCopiesWithNoLocation()
+    {
+        var source = new TrackerData();
+        TrackerOperations.AddCopy(source, new OwnedCopy { ItemKey = "A|1|Ring", ItemName = "A" });
+        var target = new TrackerData();
+
+        var result = TrackerBackupService.Import(target, TrackerBackupService.Parse(TrackerBackupService.Export(source, Now)), ImportMode.Replace);
+
+        Assert.Equal(new BackupImportResult(1, 0, 0), result);
+        var copy = Assert.Single(target.OwnedCopies);
+        Assert.Null(copy.Server);
+        Assert.Null(copy.Storage);
     }
 }

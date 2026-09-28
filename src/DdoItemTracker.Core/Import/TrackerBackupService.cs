@@ -11,7 +11,6 @@ public sealed class TrackerBackup
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
     public DateTimeOffset ExportedUtc { get; set; }
     public List<Character> Characters { get; set; } = [];
-    public List<Folder> Folders { get; set; } = [];
     /// <summary>Null when the file isn't ours; a DDO Life Tracker backup has no OwnedCopies.</summary>
     public List<OwnedCopy>? OwnedCopies { get; set; }
 }
@@ -27,14 +26,13 @@ public sealed record BackupImportResult(int Added, int Updated, int Skipped);
 public static class TrackerBackupService
 {
     private const string NotOurs =
-        "This file isn't a DDO Item Tracker backup. To bring in characters from DDO Life Tracker, use Import from DDO Life Tracker on the Characters page.";
+        "This file isn't a DDO Item Tracker backup. To bring in characters from DDO Life Tracker, use Import from DDO Life Tracker in Settings, under Characters.";
 
     public static string Export(TrackerData data, DateTimeOffset now) =>
         JsonSerializer.Serialize(new TrackerBackup
         {
             ExportedUtc = now,
             Characters = data.Characters,
-            Folders = data.Folders,
             OwnedCopies = data.OwnedCopies,
         }, TrackerJson.Options);
 
@@ -53,10 +51,8 @@ public static class TrackerBackupService
         if (backup.SchemaVersion > TrackerBackup.CurrentSchemaVersion)
             throw new InvalidDataException("This backup was made by a newer version of DDO Item Tracker. Update the app, then try again.");
         backup.Characters = (backup.Characters ?? []).Where(c => c is not null).ToList();
-        backup.Folders = (backup.Folders ?? []).Where(f => f is not null).ToList();
         backup.OwnedCopies = backup.OwnedCopies.Where(c => c is not null).ToList();
         foreach (var c in backup.Characters) if (string.IsNullOrWhiteSpace(c.Id)) c.Id = Guid.NewGuid().ToString();
-        foreach (var f in backup.Folders) if (string.IsNullOrWhiteSpace(f.Id)) f.Id = Guid.NewGuid().ToString();
         foreach (var c in backup.OwnedCopies) if (string.IsNullOrWhiteSpace(c.Id)) c.Id = Guid.NewGuid().ToString();
         return backup;
     }
@@ -74,12 +70,6 @@ public static class TrackerBackupService
         // Incoming character Id -> Id of the same-named character already here.
         var characterIds = new Dictionary<string, string>(StringComparer.Ordinal);
 
-        foreach (var folder in backup.Folders)
-        {
-            if (string.IsNullOrWhiteSpace(folder.Name)) { skipped++; continue; }
-            Upsert(work.Folders, folder, f => f.Id);
-        }
-
         foreach (var character in backup.Characters)
         {
             var server = Servers.Canonical(character.Server);
@@ -90,7 +80,6 @@ public static class TrackerBackupService
             }
             character.Server = server;
             character.Name = character.Name.Trim();
-            if (character.FolderId is not null && work.Folders.All(f => f.Id != character.FolderId)) character.FolderId = null;
 
             var namesake = work.Characters.FirstOrDefault(c =>
                 c.Id != character.Id && c.Server == server && TrackerOperations.IsSameName(c.Name, character.Name));
@@ -103,7 +92,6 @@ public static class TrackerBackupService
                 }
                 // The same character recorded under a different Id (for example re-created on a new device).
                 characterIds[character.Id] = namesake.Id;
-                namesake.FolderId = character.FolderId ?? namesake.FolderId;
                 updated++;
                 continue;
             }
@@ -112,7 +100,7 @@ public static class TrackerBackupService
 
         foreach (var copy in backup.OwnedCopies ?? [])
         {
-            copy.Server = Servers.Canonical(copy.Server) ?? copy.Server;
+            copy.Server = OwnershipRules.NormaliseServer(copy.Server);
             if (copy.CharacterId is not null && characterIds.TryGetValue(copy.CharacterId, out var mapped)) copy.CharacterId = mapped;
             if (OwnershipRules.ValidateCopy(work, copy) is not null) { skipped++; continue; }
             if (Upsert(work.OwnedCopies, copy, c => c.Id)) updated++; else added++;
@@ -120,8 +108,6 @@ public static class TrackerBackupService
 
         data.Characters.Clear();
         data.Characters.AddRange(work.Characters);
-        data.Folders.Clear();
-        data.Folders.AddRange(work.Folders);
         data.OwnedCopies.Clear();
         data.OwnedCopies.AddRange(work.OwnedCopies);
         return new BackupImportResult(added, updated, skipped);

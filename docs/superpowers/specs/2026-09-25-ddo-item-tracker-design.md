@@ -1,20 +1,20 @@
 # DDO Item Tracker - Design
 
 **Date:** 2026-09-25
-**Status:** Approved in brainstorming, awaiting written-spec review
+**Status:** Approved. Revised 2026-09-28: the app is item-driven and every part of a copy's location is optional (sections 1, 4.2, 5, 7, 8).
 **Author:** grimorde (with Claude)
 
 ## 1. Purpose
 
-A .NET MAUI app for Dungeons & Dragons Online players to record which **named items** they own and **where each copy is held**, across several characters on several servers. It is a sibling to DDO Life Tracker (same author) and follows its conventions.
+A .NET MAUI app for Dungeons & Dragons Online players to record which **named items** they own. The app is **item-driven**: the player browses the catalog, opens an item and records that they have it. Saying **where** a copy is held (server, Shared Bank, character, storage) is optional detail. A player may track locations fully, track only the server, or ignore location altogether. Characters exist only as a pick-list for that optional detail. It is a sibling to DDO Life Tracker (same author) and follows its conventions.
 
 ### Goals
 
 - Browse the full catalog of DDO named items and filter it by level, slot, type, pack, quest, set membership and ownership.
-- Record owned copies by hand. A player can own any number of copies of an item, each at its own location.
-- Show where every copy is: server, storage type, and character where the storage belongs to one.
+- Record owned copies by hand, in one tap when no location is wanted. A player can own any number of copies of an item.
+- Optionally record where each copy is: server, then Shared Bank or a character, then (for a character) Inventory or Bank. Inventory includes equipped gear. Every level can be left out and added later.
 - Show an item's details, including its effects and, if it belongs to a set, the set's bonus tiers and the other set pieces with their ownership state.
-- Optionally import characters from a DDO Life Tracker backup file. Creating characters directly in the app must work without it.
+- Optionally import characters from a DDO Life Tracker backup file, as a quick way to fill the character pick-list. Creating characters directly in the app must work without it.
 - Keep the item catalog current without an app release.
 - Publish to the Windows, Google Play and Apple stores.
 
@@ -157,61 +157,76 @@ Effect    { Name string, BonusType string?, Value string?, IsToggle bool }
 TrackerData
   SchemaVersion  int (starts at 1)
   Characters     Character[]
-  Folders        Folder[]
   OwnedCopies    OwnedCopy[]
 
-Character  { Id GUID, Server, Name, FolderId?, LifeTrackerId? }
-Folder     { Id GUID, Name }
-OwnedCopy  { Id GUID, ItemKey, ItemName, Server, Storage, CharacterId?, Note?, AddedUtc }
+Character  { Id GUID, Server, Name, LifeTrackerId? }
+OwnedCopy  { Id GUID, ItemKey, ItemName, Server?, CharacterId?, Storage?, Note?, AddedUtc }
 
-StorageType = Equipped | Inventory | Bank | SharedBank
+StorageType = SharedBank | Inventory | Bank     (null = not recorded)
 Servers     = Cormyr, Moonsea, Shadowdale, Thrane
 ```
 
+A copy's location is one of these levels. Each is valid; the player can stop at any of them.
+
+| Location | `Server` | `CharacterId` | `Storage` |
+|---|---|---|---|
+| Not recorded | null | null | null |
+| Server only | set | null | null |
+| Shared Bank | set | null | `SharedBank` |
+| Character | set (the character's server) | set | null, `Inventory` or `Bank` |
+
 Rules, enforced in Core:
 
-- `Storage = SharedBank` requires `CharacterId = null`. Every other storage type requires a `CharacterId` whose character is on the same `Server`.
+- `Server`, when set, is one of the four servers.
+- No server means no character and no storage.
+- `SharedBank` has no character. `Inventory` and `Bank` need a character. Inventory covers equipped items too.
+- A character must exist and be on the copy's server. Choosing a character in the app fills in the server.
 - `ItemName` is a snapshot taken when the copy is created so a copy whose key is no longer in the catalog can still be displayed.
 - Several copies of the same item are several `OwnedCopy` records.
 - A character's `(Server, Name)` pair is unique, compared case-insensitively.
-- **Deleting a character** requires a choice: delete that character's copies, or move them to the Shared Bank of the character's server (setting `CharacterId = null`, `Storage = SharedBank`).
-- **Deleting a folder** moves its characters to no folder.
+- **Deleting a character** that holds copies requires a choice: keep the copies recorded on that server only (`CharacterId = null`, `Storage = null`, `Server` kept), or delete them.
+- There are no character folders.
 
 ## 5. Screens
 
-Navigation: three tabs (bottom on phones, sidebar on Windows): **Catalog**, **My Items**, **Characters**; plus **Settings**.
+Navigation: two tabs (bottom on phones, sidebar on Windows): **Catalog** and **My Items**; plus **Settings**, which holds **Characters**.
 
 ### 5.1 Catalog
 
 - Name search, case-insensitive substring, updated as the user types.
-- Filters: MinLevel range, Slot, Type, Pack, Quest, In a set, Artifact, Ownership (All / Owned / Not owned) with an optional Server scope.
+- Filters: MinLevel range, Slot, Type, Pack, Quest, In a set, Artifact, Ownership (All / Owned / Not owned) with an optional Server scope. A copy with no server does not count as owned on any particular server.
 - Row: name, MinLevel, slot, pack, and an owned-count badge (for example `×2`) when the user owns copies.
 
 ### 5.2 Item detail
 
 - Header: name, MinLevel, slot, type, pack, quests, link to the ddowiki page.
+- Your copies, near the top: two buttons, **I have one** (adds a copy with no location, in one tap) and **Add with location...** (opens the form). Each copy shows its location, or "Location not recorded", and its note, with edit and delete.
 - Effects: `Name +Value (BonusType)`, toggles by name only. Crafting slots listed.
 - Set section, one block per set in `SetNames`: set name, each tier as "N pieces: effects", and every member item with its owned state. Tapping a member opens its detail. A set name with no matching `CatalogSet` shows "Set bonus details not available".
-- Your copies: server, storage, character, note, with edit and delete, and **+ Add copy**.
 
 ### 5.3 Add / edit copy
 
-Server, then Storage, then Character (shown only for character storage, listing characters on the chosen server), then Note. Save is disabled until the rules in 4.2 are met. The form defaults to the last server, storage and character used.
+- **Server:** Not recorded, or one of the four servers.
+- **Held in** (shown when a server is chosen): Not recorded, Shared Bank, or one of that server's characters.
+- **Storage** (shown when a character is chosen): Not recorded, Inventory, Bank.
+- **Note:** optional.
+- A new copy starts at the last location used on the form. Every combination the form can produce is valid (4.2), so Save is always available.
 
 ### 5.4 My Items
 
-- The Catalog filters plus Server, Character, Storage, and **Not in current catalog**.
-- Results grouped Server, then Character or Shared Bank, then Storage.
+- The Catalog filters (without Ownership) plus Server (Any, Not recorded, each server), Character, Storage (Any, Not recorded, each type), and **Not in current catalog**.
+- Results grouped by location: "Location not recorded", "Cormyr", "Cormyr · Shared Bank", "Cormyr · Grimorde", "Cormyr · Grimorde · Bank".
 - Summary line: distinct named items owned out of the catalog total.
+- Filtering by one character shows everything that character holds; there is no separate character page.
 
-### 5.5 Characters
+### 5.5 Characters (in Settings)
 
-- List grouped by server, with folders as in DDO Life Tracker. Add, rename, move to folder, delete (with the choice from 4.2).
-- Character detail lists everything that character holds, grouped by storage.
+- List grouped by server. Add, rename, delete (with the choice from 4.2).
 - **Import from DDO Life Tracker** (section 7.2).
 
 ### 5.6 Settings
 
+- Characters (5.5).
 - Catalog version (upstream commit short SHA and date), **Check for catalog update**, **Reset to built-in catalog**.
 - Back up and restore (section 7.1).
 - Theme and What's New, as in DDO Life Tracker.
@@ -325,15 +340,14 @@ A catalog update never modifies user data. Copies whose `ItemKey` is not in the 
 
 - Every change is saved immediately to `tracker.json` by writing a temp file and atomically replacing, keeping the previous file as `tracker.json.bak`.
 - At start-up, if `tracker.json` is unreadable, load `tracker.json.bak` and tell the user. If both are unreadable, start empty only after telling the user and leaving the unreadable files in place.
-- **Export backup**: `{ SchemaVersion, ExportedUtc, Characters, Folders, OwnedCopies }` saved or shared as a file.
+- **Export backup**: `{ SchemaVersion, ExportedUtc, Characters, OwnedCopies }` saved or shared as a file.
 - **Import backup**: Merge (match by `Id`, incoming wins, others kept) or Replace. Importing the same file twice under Merge changes nothing.
 - The catalog is not part of the backup.
 
 ### 7.2 DDO Life Tracker character import
 
-- Input: a DDO Life Tracker backup file (`BackupPayload`, schema version 2: `Characters[]` with `Id`, `Server`, `Name`, `FolderId`; `Folders[]` with `Id`, `Name`). Past lives and tomes are ignored.
-- Matching: first by `LifeTrackerId` equal to the incoming `Id`; otherwise by `(Server, Name)` case-insensitive. A match updates name and folder; no match adds a character with `LifeTrackerId` set.
-- Folders are matched by name; missing folders are created.
+- Input: a DDO Life Tracker backup file (`BackupPayload`, schema version 2: `Characters[]` with `Id`, `Server`, `Name`). Folders, past lives and tomes are ignored.
+- Matching: first by `LifeTrackerId` equal to the incoming `Id`; otherwise by `(Server, Name)` case-insensitive. A match updates the name; no match adds a character with `LifeTrackerId` set.
 - Characters on servers not in the server list are skipped and counted.
 - A preview ("5 new, 2 already here, 1 skipped") is shown before anything changes.
 - A file that is not a DDO Life Tracker backup produces a plain error and no change.
@@ -345,12 +359,12 @@ xUnit tests on `DdoItemTracker.Core`, using a small checked-in fixture cut from 
 - **Converter**: identical duplicates dropped; same-name different-slot items kept as two keys; level-scaled items get distinct keys; `Bool` affixes become toggles; set tiers ordered; unresolved set names reported; records missing required fields dropped and counted.
 - **Validator**: each hard rule proven to reject a deliberately broken input (duplicate key, 94% item count, over 1% invalid, empty catalog), and a valid catalog passes.
 - **Key matching across updates**: copies whose key disappears are flagged, never removed.
-- **Ownership rules**: Shared Bank without character accepted, with character rejected; character storage without character rejected; character on another server rejected; delete-character with each choice.
-- **Filtering**: each filter alone and combined; ownership filter with and without server scope.
+- **Ownership rules**: every location level in 4.2 accepted; storage or character without a server rejected; Shared Bank with a character rejected; Inventory or Bank without a character rejected; character on another server rejected; delete-character with each choice.
+- **Filtering**: each filter alone and combined, including the Not recorded options; ownership filter with and without server scope (copies with no server excluded from a server scope).
 - **Imports**: DDO Life Tracker backup (new, matched by id, matched by server+name, unknown server, malformed); own backup Merge and Replace, and idempotent re-import.
 - **Persistence**: atomic save, recovery from a corrupt `tracker.json` using `.bak`.
 
-Manual UI checklist on Windows and Android before each release: browse and filter catalog, open a set item and navigate between set members, add/edit/delete copies in each storage type, import Life Tracker characters, run a catalog update (up to date, and a real update), export and restore a backup.
+Manual UI checklist on Windows and Android before each release: browse and filter catalog, open a set item and navigate between set members, add a copy with I have one, add and edit copies at each location level, import Life Tracker characters, run a catalog update (up to date, and a real update), export and restore a backup.
 
 ## 9. Open items
 

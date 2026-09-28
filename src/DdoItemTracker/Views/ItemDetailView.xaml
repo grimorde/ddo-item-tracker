@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="DdoItemTracker.Views.ItemDetailView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:DdoItemTracker.Presentation.ViewModels;assembly=DdoItemTracker.Presentation"
+    x:DataType="vm:ItemDetailViewModel">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="8">
+            <Label Text="{Binding Title}" FontSize="22" FontAttributes="Bold" TextColor="{DynamicResource GoldAccent}" />
+            <Label Text="{Binding Subtitle}" Style="{StaticResource Secondary}" FontSize="14" />
+            <Label Text="{Binding QuestsText}" />
+            <Label Text="{Binding NotInCatalogMessage}" TextColor="{DynamicResource Danger}"
+                   IsVisible="{Binding IsInCatalog, Converter={StaticResource InvertedBoolConverter}}" />
+            <Button Text="Open on ddowiki" Command="{Binding OpenWikiCommand}" IsVisible="{Binding HasWikiUrl}"
+                    Style="{StaticResource LinkButton}" HorizontalOptions="Start" />
+
+            <!-- Copies first: this is what the player comes here to change -->
+            <Label Text="{Binding CopiesHeader}" Style="{StaticResource SectionHeader}" />
+            <HorizontalStackLayout Spacing="8">
+                <Button Text="I have one" Command="{Binding HaveOneCommand}" />
+                <Button Text="Add with location..." Command="{Binding AddCopyCommand}" Style="{StaticResource LinkButton}" />
+            </HorizontalStackLayout>
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Copies}" Spacing="6">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:CopyRow">
+                        <Border StrokeShape="RoundRectangle 8" BackgroundColor="{DynamicResource CardBackground}" Padding="12,8">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="4">
+                                <VerticalStackLayout VerticalOptions="Center">
+                                    <Label Text="{Binding Location}" />
+                                    <Label Text="{Binding Note}" Style="{StaticResource Secondary}" IsVisible="{Binding HasNote}" />
+                                </VerticalStackLayout>
+                                <Button Grid.Column="1" Text="Edit" Clicked="OnEditCopyClicked" Style="{StaticResource LinkButton}" />
+                                <Button Grid.Column="2" Text="Delete" Clicked="OnDeleteCopyClicked" Style="{StaticResource LinkButton}"
+                                        TextColor="{DynamicResource Danger}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+            <Label Text="Effects" Style="{StaticResource SectionHeader}" IsVisible="{Binding IsInCatalog}" />
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Effects}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <Label Text="{Binding .}" />
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+            <Label Text="Augment and crafting slots" Style="{StaticResource SectionHeader}" IsVisible="{Binding IsInCatalog}" />
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding CraftingSlots}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <Label Text="{Binding .}" />
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Sets}" Spacing="12">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SetBlock">
+                        <Border StrokeShape="RoundRectangle 8" Padding="12" Margin="0,8,0,0">
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="{Binding Name, StringFormat='Set: {0}'}" Style="{StaticResource SectionHeader}" Margin="0" />
+                                <Label Text="{Binding OwnedSummary}" Style="{StaticResource Secondary}" />
+                                <Label Text="Set bonus details are not available for this set."
+                                       IsVisible="{Binding HasDetails, Converter={StaticResource InvertedBoolConverter}}" />
+                                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Tiers}" Spacing="4">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:SetTierLine">
+                                            <Grid ColumnDefinitions="90,*">
+                                                <Label Text="{Binding Pieces}" FontAttributes="Bold" />
+                                                <Label Grid.Column="1" Text="{Binding Effects}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+                                <Label Text="Pieces" FontAttributes="Bold" Margin="0,6,0,0" />
+                                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Members}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:SetMemberRow">
+                                            <Grid ColumnDefinitions="*,Auto" Padding="0,4">
+                                                <Grid.GestureRecognizers>
+                                                    <TapGestureRecognizer Tapped="OnMemberTapped" />
+                                                </Grid.GestureRecognizers>
+                                                <VerticalStackLayout>
+                                                    <Label Text="{Binding Name}" />
+                                                    <Label Text="{Binding Subtitle}" Style="{StaticResource Secondary}" />
+                                                </VerticalStackLayout>
+                                                <Label Grid.Column="1" Text="{Binding OwnedText}" VerticalOptions="Center" Style="{StaticResource Secondary}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentView>

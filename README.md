@@ -6,7 +6,15 @@ Item and set data comes from [illusionistpm/ddo-gear-planner](https://github.com
 
 ## Build and test
 
-    dotnet test
+    dotnet test tests/DdoItemTracker.Core.Tests
+    dotnet test tests/DdoItemTracker.Presentation.Tests
+
+## Run the app
+
+    dotnet build src/DdoItemTracker -f net10.0-windows10.0.19041.0
+    dotnet run --project src/DdoItemTracker -f net10.0-windows10.0.19041.0
+
+Android: `dotnet build src/DdoItemTracker -f net10.0-android`. iOS needs a paired Mac, as for DDO Life Tracker.
 
 ## Refresh the built-in catalog
 

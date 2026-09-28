@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DdoItemTracker.Views.CopyEditorPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:DdoItemTracker.Presentation.ViewModels;assembly=DdoItemTracker.Presentation"
+    x:DataType="vm:CopyEditorViewModel"
+    Title="{Binding Title}">
+
+    <Grid RowDefinitions="*,Auto" Padding="16,24">
+        <ScrollView>
+            <VerticalStackLayout Spacing="16" MaximumWidthRequest="600" HorizontalOptions="Fill">
+                <Label Text="{Binding ItemName}" FontSize="20" FontAttributes="Bold" TextColor="{DynamicResource GoldAccent}" />
+
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Server" FontAttributes="Bold" TextColor="{DynamicResource GoldAccent}" />
+                    <Border StrokeShape="RoundRectangle 8" BackgroundColor="{DynamicResource CardBackground}" Padding="4,0">
+                        <Picker ItemsSource="{Binding ServerOptions}" SelectedItem="{Binding SelectedServer}" FontSize="16" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="6" IsVisible="{Binding ShowHeldIn}">
+                    <Label Text="Held in" FontAttributes="Bold" TextColor="{DynamicResource GoldAccent}" />
+                    <Border StrokeShape="RoundRectangle 8" BackgroundColor="{DynamicResource CardBackground}" Padding="4,0">
+                        <Picker ItemsSource="{Binding HeldInOptions}" SelectedItem="{Binding SelectedHeldIn}" FontSize="16" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="6" IsVisible="{Binding ShowStorage}">
+                    <Label Text="Storage" FontAttributes="Bold" TextColor="{DynamicResource GoldAccent}" />
+                    <Border StrokeShape="RoundRectangle 8" BackgroundColor="{DynamicResource CardBackground}" Padding="4,0">
+                        <Picker ItemsSource="{Binding StorageOptions}" SelectedItem="{Binding SelectedStorage}" FontSize="16" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Note" FontAttributes="Bold" TextColor="{DynamicResource GoldAccent}" />
+                    <Border StrokeShape="RoundRectangle 8" BackgroundColor="{DynamicResource CardBackground}" Padding="12,4">
+                        <Entry Text="{Binding Note}" Placeholder="Optional, for example Swap set 2" FontSize="16" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <Label Text="{Binding ValidationMessage}" TextColor="{DynamicResource Danger}" />
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <VerticalStackLayout Grid.Row="1" Spacing="8" MaximumWidthRequest="600">
+            <Button Text="Save" Command="{Binding SaveCommand}" IsEnabled="{Binding CanSave}"
+                    FontSize="16" FontAttributes="Bold" HeightRequest="50" CornerRadius="12" />
+            <Button Text="Cancel" Command="{Binding CancelCommand}" BackgroundColor="Transparent"
+                    TextColor="{DynamicResource TextSecondary}" HeightRequest="44" />
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="DdoItemTracker.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:DdoItemTracker.Presentation.ViewModels;assembly=DdoItemTracker.Presentation"
+    x:DataType="vm:SettingsViewModel"
+    Title="Settings">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="10" MaximumWidthRequest="600">
+            <Label Text="Appearance" Style="{StaticResource SectionHeader}" />
+            <Picker x:Name="ThemePicker" SelectedIndexChanged="OnThemeChanged">
+                <Picker.ItemsSource>
+                    <x:Array Type="{x:Type x:String}">
+                        <x:String>System default</x:String>
+                        <x:String>Light</x:String>
+                        <x:String>Dark</x:String>
+                    </x:Array>
+                </Picker.ItemsSource>
+            </Picker>
+
+            <Label Text="Characters" Style="{StaticResource SectionHeader}" />
+            <Label Text="The characters you can pick from when you record where a copy is held." Style="{StaticResource Secondary}" />
+            <Button Text="Manage characters" Clicked="OnCharactersClicked" />
+
+            <Label Text="Item catalog" Style="{StaticResource SectionHeader}" />
+            <Label Text="{Binding CatalogVersionText}" />
+            <Label Text="Item data comes from the DDO Gear Planner project, which is built from ddowiki." Style="{StaticResource Secondary}" />
+
+            <Label Text="Backup" Style="{StaticResource SectionHeader}" />
+            <Button Text="Save a backup" Command="{Binding ExportBackupCommand}" />
+            <Button Text="Share a backup" Command="{Binding ShareBackupCommand}" />
+            <Button Text="Restore backup" Command="{Binding RestoreBackupCommand}" />
+
+            <Label Text="About" Style="{StaticResource SectionHeader}" />
+            <Label x:Name="VersionLabel" />
+            <Button Text="What's new" Clicked="OnWhatsNewClicked" Style="{StaticResource LinkButton}" HorizontalOptions="Start" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="DdoItemTracker.Views.ItemFilterView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:DdoItemTracker.Presentation.ViewModels;assembly=DdoItemTracker.Presentation"
+    x:DataType="vm:ItemFilterPanel">
+
+    <Grid ColumnDefinitions="100,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="4">
+        <Label Text="Level" VerticalOptions="Center" />
+        <Grid Grid.Column="1" ColumnDefinitions="*,*" ColumnSpacing="8">
+            <Entry Placeholder="From" Keyboard="Numeric" Text="{Binding MinLevelText}" />
+            <Entry Grid.Column="1" Placeholder="To" Keyboard="Numeric" Text="{Binding MaxLevelText}" />
+        </Grid>
+
+        <Label Grid.Row="1" Text="Slot" VerticalOptions="Center" />
+        <Picker Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Slots}" SelectedItem="{Binding SelectedSlot}" />
+
+        <Label Grid.Row="2" Text="Type" VerticalOptions="Center" />
+        <Picker Grid.Row="2" Grid.Column="1" ItemsSource="{Binding Types}" SelectedItem="{Binding SelectedType}" />
+
+        <Label Grid.Row="3" Text="Pack" VerticalOptions="Center" />
+        <Picker Grid.Row="3" Grid.Column="1" ItemsSource="{Binding Packs}" SelectedItem="{Binding SelectedPack}" />
+
+        <Label Grid.Row="4" Text="Quest" VerticalOptions="Center" />
+        <Picker Grid.Row="4" Grid.Column="1" ItemsSource="{Binding Quests}" SelectedItem="{Binding SelectedQuest}" />
+
+        <HorizontalStackLayout Grid.Row="5" Grid.ColumnSpan="2" Spacing="4">
+            <CheckBox IsChecked="{Binding InSetOnly}" />
+            <Label Text="In a set" VerticalOptions="Center" />
+            <CheckBox IsChecked="{Binding ArtifactOnly}" Margin="16,0,0,0" />
+            <Label Text="Artifact" VerticalOptions="Center" />
+        </HorizontalStackLayout>
+
+        <Label x:Name="OwnershipLabel" Grid.Row="6" Text="Owned" VerticalOptions="Center" />
+        <Grid x:Name="OwnershipPickers" Grid.Row="6" Grid.Column="1" ColumnDefinitions="*,*" ColumnSpacing="8">
+            <Picker ItemsSource="{Binding OwnershipOptions}" SelectedItem="{Binding SelectedOwnership}" />
+            <Picker Grid.Column="1" Title="On server" ItemsSource="{Binding OwnershipServers}" SelectedItem="{Binding SelectedOwnershipServer}" />
+        </Grid>
+
+        <Button Grid.Row="7" Grid.ColumnSpan="2" Text="Clear filters" Command="{Binding ClearCommand}"
+                Style="{StaticResource LinkButton}" HorizontalOptions="Start" />
+    </Grid>
+</ContentView>
