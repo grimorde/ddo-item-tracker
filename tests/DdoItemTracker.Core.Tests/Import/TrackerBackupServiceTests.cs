@@ -125,4 +125,42 @@ public class TrackerBackupServiceTests
         var ex = Assert.Throws<InvalidDataException>(() => TrackerBackupService.Parse("""{"SchemaVersion":99,"OwnedCopies":[]}"""));
         Assert.Equal("This backup was made by a newer version of DDO Item Tracker. Update the app, then try again.", ex.Message);
     }
+
+    [Fact]
+    public void Merge_SameNameCharacterWithDifferentId_BringsItsCopies()
+    {
+        var backup = TrackerBackupService.Parse(TrackerBackupService.Export(Sample(), Now));
+        var target = new TrackerData();
+        var mine = TrackerOperations.AddCharacter(target, "Cormyr", "grimorde");
+
+        var result = TrackerBackupService.Import(target, backup, ImportMode.Merge);
+
+        Assert.Single(target.Characters);
+        Assert.Equal(mine.Id, Assert.Single(target.OwnedCopies, c => c.ItemKey == "Chains|8|Belt").CharacterId);
+        Assert.Equal(0, result.Skipped);
+    }
+
+    [Fact]
+    public void Import_WhenProcessingFails_LeavesDataUnchanged()
+    {
+        var target = Sample();
+        var before = Snapshot(target);
+        var backup = new TrackerBackup { Characters = [null!], OwnedCopies = [] };
+
+        Assert.ThrowsAny<Exception>(() => TrackerBackupService.Import(target, backup, ImportMode.Replace));
+
+        Assert.Equal(before, Snapshot(target));
+    }
+
+    [Fact]
+    public void Parse_DropsNullRecordsAndFillsMissingIds()
+    {
+        var backup = TrackerBackupService.Parse("""
+            {"SchemaVersion":1,"Characters":[null,{"Id":null,"Server":"Cormyr","Name":"NoId"}],"Folders":[null],"OwnedCopies":[null]}
+            """);
+
+        Assert.False(string.IsNullOrWhiteSpace(Assert.Single(backup.Characters).Id));
+        Assert.Empty(backup.Folders);
+        Assert.Empty(backup.OwnedCopies!);
+    }
 }

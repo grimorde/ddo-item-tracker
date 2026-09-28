@@ -104,4 +104,18 @@ public sealed class TrackerStoreTests : IDisposable
         Assert.Empty(result.Data.Folders);
         Assert.Empty(result.Data.OwnedCopies);
     }
+
+    [Fact]
+    public void RecoverFromBak_ThenSave_KeepsTheGoodBackup()
+    {
+        var store = new TrackerStore(_dir);
+        store.Save(Sample("First"));
+        store.Save(Sample("Second"));
+        File.WriteAllText(store.FilePath, "");
+
+        store.Save(store.Load().Data);
+
+        Assert.Contains("First", File.ReadAllText(store.BackupPath));
+        Assert.Equal(LoadOutcome.Loaded, store.Load().Outcome);
+    }
 }

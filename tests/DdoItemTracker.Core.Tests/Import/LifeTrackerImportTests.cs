@@ -152,4 +152,45 @@ public class LifeTrackerImportTests
         Assert.Equal(1, plan.AddCount);
         Assert.Equal(2, plan.SkipCount);
     }
+
+    private static TrackerData WithAliceAsL1()
+    {
+        var data = new TrackerData();
+        LifeTrackerImporter.Apply(data, LifeTrackerBackupReader.Parse("""{"Characters":[{"Id":"L1","Server":"Cormyr","Name":"Alice"}]}"""));
+        TrackerOperations.AddCopy(data, new OwnedCopy { ItemKey = "A|1|Ring", ItemName = "A", Server = "Cormyr", Storage = StorageType.Bank, CharacterId = data.Characters[0].Id });
+        return data;
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void RenamedCharacterAndNewNamesake_AreResolvedById_InEitherFileOrder(bool newcomerFirst)
+    {
+        var data = WithAliceAsL1();
+        var alice = data.Characters[0];
+        const string renamed = """{"Id":"L1","Server":"Cormyr","Name":"Bob"}""";
+        const string newcomer = """{"Id":"L2","Server":"Cormyr","Name":"Alice"}""";
+        var json = $$"""{"Characters":[{{(newcomerFirst ? newcomer : renamed)}},{{(newcomerFirst ? renamed : newcomer)}}]}""";
+
+        var plan = LifeTrackerImporter.Apply(data, LifeTrackerBackupReader.Parse(json));
+
+        Assert.Equal(0, plan.SkipCount);
+        Assert.Equal("Bob", alice.Name);
+        Assert.Equal("L1", alice.LifeTrackerId);
+        Assert.Equal("Alice", Assert.Single(data.Characters, c => c.LifeTrackerId == "L2").Name);
+        Assert.Equal(alice.Id, Assert.Single(data.OwnedCopies).CharacterId);
+    }
+
+    [Fact]
+    public void SwappedNames_AreBothApplied()
+    {
+        var data = new TrackerData();
+        LifeTrackerImporter.Apply(data, LifeTrackerBackupReader.Parse("""{"Characters":[{"Id":"L1","Server":"Cormyr","Name":"Alice"},{"Id":"L2","Server":"Cormyr","Name":"Bob"}]}"""));
+
+        var plan = LifeTrackerImporter.Apply(data, LifeTrackerBackupReader.Parse("""{"Characters":[{"Id":"L1","Server":"Cormyr","Name":"Bob"},{"Id":"L2","Server":"Cormyr","Name":"Alice"}]}"""));
+
+        Assert.Equal(2, plan.UpdateCount);
+        Assert.Equal("Bob", data.Characters.Single(c => c.LifeTrackerId == "L1").Name);
+        Assert.Equal("Alice", data.Characters.Single(c => c.LifeTrackerId == "L2").Name);
+    }
 }

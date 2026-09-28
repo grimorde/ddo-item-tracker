@@ -52,49 +52,78 @@ public static class TrackerBackupService
         if (backup?.OwnedCopies is null) throw new InvalidDataException(NotOurs);
         if (backup.SchemaVersion > TrackerBackup.CurrentSchemaVersion)
             throw new InvalidDataException("This backup was made by a newer version of DDO Item Tracker. Update the app, then try again.");
-        backup.Characters ??= [];
-        backup.Folders ??= [];
+        backup.Characters = (backup.Characters ?? []).Where(c => c is not null).ToList();
+        backup.Folders = (backup.Folders ?? []).Where(f => f is not null).ToList();
+        backup.OwnedCopies = backup.OwnedCopies.Where(c => c is not null).ToList();
+        foreach (var c in backup.Characters) if (string.IsNullOrWhiteSpace(c.Id)) c.Id = Guid.NewGuid().ToString();
+        foreach (var f in backup.Folders) if (string.IsNullOrWhiteSpace(f.Id)) f.Id = Guid.NewGuid().ToString();
+        foreach (var c in backup.OwnedCopies) if (string.IsNullOrWhiteSpace(c.Id)) c.Id = Guid.NewGuid().ToString();
         return backup;
     }
 
+    /// <summary>
+    /// Applies a backup. The work is done on a copy of <paramref name="data"/>, which is only
+    /// updated once the whole backup has been processed, so a failure part way leaves it untouched.
+    /// </summary>
     public static BackupImportResult Import(TrackerData data, TrackerBackup backup, ImportMode mode)
     {
-        if (mode == ImportMode.Replace)
-        {
-            data.Characters.Clear();
-            data.Folders.Clear();
-            data.OwnedCopies.Clear();
-        }
+        var work = mode == ImportMode.Replace
+            ? new TrackerData()
+            : JsonSerializer.Deserialize<TrackerData>(JsonSerializer.Serialize(data, TrackerJson.Options), TrackerJson.Options)!;
         int added = 0, updated = 0, skipped = 0;
+        // Incoming character Id -> Id of the same-named character already here.
+        var characterIds = new Dictionary<string, string>(StringComparer.Ordinal);
 
         foreach (var folder in backup.Folders)
         {
             if (string.IsNullOrWhiteSpace(folder.Name)) { skipped++; continue; }
-            Upsert(data.Folders, folder, f => f.Id);
+            Upsert(work.Folders, folder, f => f.Id);
         }
 
         foreach (var character in backup.Characters)
         {
             var server = Servers.Canonical(character.Server);
-            if (server is null || string.IsNullOrWhiteSpace(character.Name)
-                || data.Characters.Any(c => c.Id != character.Id && c.Server == server && TrackerOperations.IsSameName(c.Name, character.Name)))
+            if (server is null || string.IsNullOrWhiteSpace(character.Name))
             {
                 skipped++;
                 continue;
             }
             character.Server = server;
             character.Name = character.Name.Trim();
-            if (character.FolderId is not null && data.Folders.All(f => f.Id != character.FolderId)) character.FolderId = null;
-            if (Upsert(data.Characters, character, c => c.Id)) updated++; else added++;
+            if (character.FolderId is not null && work.Folders.All(f => f.Id != character.FolderId)) character.FolderId = null;
+
+            var namesake = work.Characters.FirstOrDefault(c =>
+                c.Id != character.Id && c.Server == server && TrackerOperations.IsSameName(c.Name, character.Name));
+            if (namesake is not null)
+            {
+                if (work.Characters.Any(c => c.Id == character.Id))
+                {
+                    skipped++; // renaming this character onto another one's name would create a duplicate
+                    continue;
+                }
+                // The same character recorded under a different Id (for example re-created on a new device).
+                characterIds[character.Id] = namesake.Id;
+                namesake.FolderId = character.FolderId ?? namesake.FolderId;
+                updated++;
+                continue;
+            }
+            if (Upsert(work.Characters, character, c => c.Id)) updated++; else added++;
         }
 
         foreach (var copy in backup.OwnedCopies ?? [])
         {
             copy.Server = Servers.Canonical(copy.Server) ?? copy.Server;
-            if (OwnershipRules.ValidateCopy(data, copy) is not null) { skipped++; continue; }
-            if (Upsert(data.OwnedCopies, copy, c => c.Id)) updated++; else added++;
+            if (copy.CharacterId is not null && characterIds.TryGetValue(copy.CharacterId, out var mapped)) copy.CharacterId = mapped;
+            if (OwnershipRules.ValidateCopy(work, copy) is not null) { skipped++; continue; }
+            if (Upsert(work.OwnedCopies, copy, c => c.Id)) updated++; else added++;
         }
 
+        data.Characters.Clear();
+        data.Characters.AddRange(work.Characters);
+        data.Folders.Clear();
+        data.Folders.AddRange(work.Folders);
+        data.OwnedCopies.Clear();
+        data.OwnedCopies.AddRange(work.OwnedCopies);
         return new BackupImportResult(added, updated, skipped);
     }
 
