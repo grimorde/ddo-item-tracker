@@ -2,7 +2,19 @@
 
 Track the named items you own in Dungeons & Dragons Online, and where each copy is held, across characters and servers.
 
-Item and set data comes from [illusionistpm/ddo-gear-planner](https://github.com/illusionistpm/ddo-gear-planner), which is scraped from [ddowiki](https://ddowiki.com).
+Item and set data comes from [illusionistpm/ddo-gear-planner](https://github.com/illusionistpm/ddo-gear-planner), which is scraped from [DDO Wiki](https://ddowiki.com).
+
+## Licence
+
+Copyright (C) 2026 grimorde
+
+The source code is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. It is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See [LICENSE](LICENSE) for the full text.
+
+The GPL covers the code only. The item catalog data is licensed separately, as below.
+
+### Data licence
+
+The item catalog (`src/DdoItemTracker/Resources/Raw/catalog.json`) is converted from the ddo-gear-planner JSON files and is shared under [CC BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5/), the licence DDO Wiki content is published under. illusionistpm gave permission to use the files on the condition that both ddo-gear-planner and DDO Wiki are credited with links. The app shows these credits in Settings.
 
 ## Build and test
 
@@ -14,7 +26,7 @@ Item and set data comes from [illusionistpm/ddo-gear-planner](https://github.com
     dotnet build src/DdoItemTracker -f net10.0-windows10.0.19041.0
     dotnet run --project src/DdoItemTracker -f net10.0-windows10.0.19041.0
 
-Android: `dotnet build src/DdoItemTracker -f net10.0-android`. iOS needs a paired Mac, as for DDO Life Tracker.
+Android: `dotnet build src/DdoItemTracker -f net10.0-android`. iOS needs a paired Mac.
 
 ## Refresh the built-in catalog
 

@@ -67,5 +67,11 @@ public partial class SettingsPage : ContentPage
 
     private async void OnCharactersClicked(object? sender, EventArgs e) => await Shell.Current.GoToAsync(nameof(CharactersPage));
 
+    private async void OnGearPlannerClicked(object? sender, EventArgs e) => await Launcher.Default.OpenAsync(CatalogAttribution.GearPlannerUrl);
+
+    private async void OnDdoWikiClicked(object? sender, EventArgs e) => await Launcher.Default.OpenAsync(CatalogAttribution.DdoWikiUrl);
+
+    private async void OnLicenseClicked(object? sender, EventArgs e) => await Launcher.Default.OpenAsync(CatalogAttribution.LicenseUrl);
+
     private async void OnWhatsNewClicked(object? sender, EventArgs e) => await Navigation.PushModalAsync(new WhatsNewPage());
 }

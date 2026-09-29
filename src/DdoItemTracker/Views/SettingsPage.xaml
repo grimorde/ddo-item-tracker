@@ -106,7 +106,12 @@
                 <VerticalStackLayout Spacing="8">
                     <Label Text="Item catalog" Style="{StaticResource CardTitle}" />
                     <Label Text="{Binding CatalogVersionText}" />
-                    <Label Text="Item data comes from the DDO Gear Planner project, which is built from ddowiki." Style="{StaticResource Secondary}" />
+                    <Label Text="Item and set data comes from DDO Gear Planner by illusionistpm, which is built from DDO Wiki. It is shared under CC BY-SA 2.5 and has been converted for this app." Style="{StaticResource Secondary}" />
+                    <VerticalStackLayout>
+                        <Button Text="DDO Gear Planner" Clicked="OnGearPlannerClicked" Style="{StaticResource LinkButton}" HorizontalOptions="Start" />
+                        <Button Text="DDO Wiki" Clicked="OnDdoWikiClicked" Style="{StaticResource LinkButton}" HorizontalOptions="Start" />
+                        <Button Text="CC BY-SA 2.5 licence" Clicked="OnLicenseClicked" Style="{StaticResource LinkButton}" HorizontalOptions="Start" />
+                    </VerticalStackLayout>
                 </VerticalStackLayout>
             </Border>
 

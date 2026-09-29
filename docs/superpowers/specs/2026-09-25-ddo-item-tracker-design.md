@@ -27,9 +27,12 @@ A .NET MAUI app for Dungeons & Dragons Online players to record which **named it
 - A raid filter. The source data does not record raid drops.
 - The Lamannia preview server.
 
-### Precondition for publishing
+### Data licence
 
-The catalog comes from [illusionistpm/ddo-gear-planner](https://github.com/illusionistpm/ddo-gear-planner), which carries **no license**. The owner will obtain permission from illusionistpm before any store release. Development may proceed before that.
+The catalog comes from [illusionistpm/ddo-gear-planner](https://github.com/illusionistpm/ddo-gear-planner). On 2026-09-29 illusionistpm gave permission to use its JSON files in this project. The JSON is licensed CC BY-SA 2.5, inherited from DDO Wiki, and illusionistpm plans to add the licence to the repo. Conditions:
+
+- Credit both ddo-gear-planner and DDO Wiki, with links to each. The app does this in Settings, in the Item catalog card, alongside a link to the licence.
+- The converted `catalog.json` is a derivative work, so it is also shared under CC BY-SA 2.5. The app's code is not affected.
 
 ## 2. Data source
 
@@ -310,7 +313,7 @@ A scheduled GitHub Action in the owner's DdoItemTracker repo publishes a ready-m
 | On-device conversion | yes | no, the app only validates |
 | Update manifest (6.4) | needed | removed |
 | Extra moving part | manifest file | the Action and its published output |
-| Permission from illusionistpm | needed to ship their data in the app | same, and also covers republishing it from the owner's repo |
+| Permission from illusionistpm | granted (CC BY-SA 2.5, see section 1) | granted; the republished catalog must carry the same licence and credits |
 
 `CatalogConverter` stays in Core either way, because `tools/CatalogBuilder` still builds the built-in catalog shipped in the app.
 
@@ -368,6 +371,5 @@ Manual UI checklist on Windows and Android before each release: browse and filte
 
 ## 9. Open items
 
-- Permission from illusionistpm before store release (owner action).
 - Final app name and icon.
 - Choose between the upstream manifest (6.4) and the self-hosted catalog (6.4a) before implementing the update feature.
