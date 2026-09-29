@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:vm="clr-namespace:DdoItemTracker.Presentation.ViewModels;assembly=DdoItemTracker.Presentation"
     x:DataType="vm:CopyEditorViewModel"
+    Shell.TabBarIsVisible="False"
     Title="{Binding Title}">
 
     <Grid RowDefinitions="*,Auto" Padding="16,24">

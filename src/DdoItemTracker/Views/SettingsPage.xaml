@@ -6,6 +6,7 @@
     xmlns:icons="clr-namespace:DdoItemTracker.Helpers"
     xmlns:vm="clr-namespace:DdoItemTracker.Presentation.ViewModels;assembly=DdoItemTracker.Presentation"
     x:DataType="vm:SettingsViewModel"
+    Shell.TabBarIsVisible="False"
     Title="Settings">
 
     <!-- Card and button styling follows the Settings page in DDO Life Tracker. -->

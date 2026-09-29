@@ -6,6 +6,7 @@
     xmlns:vm="clr-namespace:DdoItemTracker.Presentation.ViewModels;assembly=DdoItemTracker.Presentation"
     xmlns:icons="clr-namespace:DdoItemTracker.Helpers"
     x:DataType="vm:CharactersViewModel"
+    Shell.TabBarIsVisible="False"
     Title="Characters">
 
     <ContentPage.ToolbarItems>
