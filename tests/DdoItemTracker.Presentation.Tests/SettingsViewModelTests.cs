@@ -11,7 +11,7 @@ public class SettingsViewModelTests
 
     private static SettingsViewModel Create(SessionFixture f)
     {
-        var vm = new SettingsViewModel(f.Session, f.Dialogs, f.Files, new FixedClock(Now));
+        var vm = new SettingsViewModel(f.Session, f.Dialogs, f.Files, new FixedClock(Now), f.CatalogUpdates());
         vm.Activate();
         return vm;
     }
@@ -27,7 +27,7 @@ public class SettingsViewModelTests
     public void CatalogVersion_IsShown()
     {
         using var f = new SessionFixture();
-        Assert.Equal("Catalog from 27 Sep 2026 (83bc99b), 6 items", Create(f).CatalogVersionText);
+        Assert.Equal("Catalog from 27 Sep 2026 (83bc99b, built-in), 6 items", Create(f).CatalogVersionText);
     }
 
     [Fact]

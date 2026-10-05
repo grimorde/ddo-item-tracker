@@ -9,7 +9,7 @@ public class CatalogViewModelTests
 {
     private static CatalogViewModel Create(SessionFixture f)
     {
-        var vm = new CatalogViewModel(f.Session, f.Navigator, f.Dialogs);
+        var vm = new CatalogViewModel(f.Session, f.Navigator, f.Dialogs, f.CatalogUpdates());
         vm.Activate();
         return vm;
     }
@@ -131,7 +131,7 @@ public class CatalogViewModelTests
     public async Task OnAppearing_WithHealthyData_ShowsNoAlert()
     {
         using var f = new SessionFixture();
-        var vm = new CatalogViewModel(f.Session, f.Navigator, f.Dialogs);
+        var vm = new CatalogViewModel(f.Session, f.Navigator, f.Dialogs, f.CatalogUpdates());
         await vm.OnAppearingAsync();
         Assert.Empty(f.Dialogs.Alerts);
         Assert.Equal(6, vm.Results.Count);

@@ -1,3 +1,4 @@
+using DdoItemTracker.Core.Catalog;
 using DdoItemTracker.Core.Persistence;
 using DdoItemTracker.Presentation.State;
 
@@ -21,6 +22,12 @@ internal sealed class SessionFixture : IDisposable
     public FakeNavigator Navigator { get; } = new();
     public FakeFiles Files { get; } = new();
     public FakeSettings Settings { get; } = new();
+    public FakeCatalogChecker CatalogChecker { get; } = new();
+    public CatalogStore CatalogStore => new(Directory);
+    public static DateTimeOffset Now { get; } = new(2026, 10, 5, 12, 0, 0, TimeSpan.Zero);
+
+    public CatalogUpdateCoordinator CatalogUpdates(bool storedWasUnreadable = false) =>
+        new(Session, CatalogStore, CatalogChecker, () => SampleCatalog.Create().Catalog, Dialogs, Settings, new FixedClock(Now), storedWasUnreadable);
 
     public void Dispose()
     {

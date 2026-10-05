@@ -55,6 +55,7 @@ public partial class MyItemsViewModel : SessionViewModel
     {
         if (_rebuilding) return;
         RebuildCharacterOptions(); // picks up characters added or renamed in Settings
+        Filters.UseCatalog(Session.Catalog); // picks up a catalog update
         var data = Session.Data;
         var filter = new CopyFilter
         {

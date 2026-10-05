@@ -45,7 +45,7 @@ The catalog comes from [illusionistpm/ddo-gear-planner](https://github.com/illus
 | Latest-commit lookup | `GET https://api.github.com/repos/illusionistpm/ddo-gear-planner/commits?path=data/items.json&per_page=1` (and the same for `data/sets.json`) |
 | Pinned download | `https://raw.githubusercontent.com/illusionistpm/ddo-gear-planner/<sha>/data/items.json` |
 
-The files previously lived under `site/src/assets/`. That move is why the paths are configurable (section 6.4).
+The files previously lived under `site/src/assets/`. That move is one reason the catalog is converted by a workflow in the owner's repo rather than on the device (section 6.4).
 
 ### 2.1 Upstream record shapes
 
@@ -230,7 +230,7 @@ Navigation: two tabs (bottom on phones, sidebar on Windows): **Catalog** and **M
 ### 5.6 Settings
 
 - Characters (5.5).
-- Catalog version (upstream commit short SHA and date), **Check for catalog update**, **Reset to built-in catalog**.
+- Catalog version (upstream commit short SHA and date, and whether it is the built-in or an updated catalog), **Check for catalog update**, **Reset to built-in catalog** (6.5).
 - Back up and restore (section 7.1).
 - Theme and What's New, as in DDO Life Tracker.
 
@@ -269,70 +269,49 @@ Soft rules (reported in the summary, do not block):
 - Unresolved set names.
 - Items removed and added relative to the current catalog.
 
-### 6.4 Update manifest
+### 6.4 Published catalog
 
-Before checking, the app fetches a small JSON manifest from the owner's GitHub repo (the DdoItemTracker repo, for example `catalog-manifest.json` on its default branch):
+**Status: adopted (2026-10-05).** The app downloads catalog updates only from the owner's repo. An earlier design, where the app fetched the gear-planner files and converted them on the device, was dropped because any change to upstream's format would have needed an app release, and every check would have used GitHub's unauthenticated API limit of 60 requests an hour.
 
-```jsonc
-{
-  "schemaVersion": 1,
-  "repo": "illusionistpm/ddo-gear-planner",
-  "branch": "master",
-  "itemsPath": "data/items.json",
-  "setsPath": "data/sets.json"
-}
-```
+The scheduled workflow `.github/workflows/publish-catalog.yml` runs daily at 06:00 UTC, after gear-planner's 05:18 UTC run, and can also be started by hand:
 
-If the manifest cannot be fetched or parsed, the app uses the same values compiled into it. If upstream moves its files, editing this manifest fixes every installed copy without a store release.
+1. Download the currently published `catalog.json`. If there is none yet, build without a previous catalog.
+2. Run `tools/CatalogBuilder --out out/catalog.json --previous <published> --version-out out/catalog-version.json`. The builder looks up the latest upstream commit touching `data/items.json` or `data/sets.json`, and exits with code 3 if that is the published catalog's commit. In that case nothing is published.
+3. Otherwise it downloads both files pinned to that commit, converts and validates them (6.2, 6.3). If validation fails, the builder exits with 1, nothing is published and the run fails, so GitHub notifies the owner.
+4. On success, upload `catalog.json` and then `catalog-version.json` (in that order) to the rolling release `catalog-latest`, replacing the previous assets. The release notes carry the CC BY-SA 2.5 credits.
 
-### 6.4a Alternative under consideration: self-hosted catalog
+The app reads:
 
-**Status: undecided.** Sections 6.4 and 6.5 describe the current design. This alternative would replace them if adopted.
+- `https://github.com/grimorde/ddo-item-tracker/releases/download/catalog-latest/catalog-version.json`
+- `https://github.com/grimorde/ddo-item-tracker/releases/download/catalog-latest/catalog.json`
 
-A scheduled GitHub Action in the owner's DdoItemTracker repo publishes a ready-made catalog, and the app downloads only from the owner's repo.
+`catalog-version.json` is `{ FormatVersion, UpstreamCommit, UpstreamCommitDateUtc, BuiltUtc, ItemCount, SetCount }`. `FormatVersion` is 1 and goes up only when `catalog.json` changes shape. An app that sees a higher `FormatVersion` than it supports does not download the catalog, and tells the player to update the app.
 
-**Action (daily, for example 06:00 UTC, after gear-planner's 05:18 UTC run):**
-
-1. Look up the latest upstream commit touching `data/items.json` or `data/sets.json`. Stop if it equals the commit in the currently published catalog.
-2. Download both files pinned to that commit.
-3. Run `tools/CatalogBuilder` (the same `CatalogConverter` and `CatalogValidator` from Core).
-4. If validation passes, publish `catalog.json` (containing `Version.UpstreamCommit`) plus a small `catalog-version.json` (`{ UpstreamCommit, UpstreamCommitDateUtc, BuiltUtc, ItemCount, SetCount }`), for example to a `catalog` branch or as a GitHub Release asset.
-5. If validation fails, publish nothing and fail the run so the owner is notified by GitHub.
-
-**App update flow becomes:**
-
-1. Fetch `catalog-version.json` from the owner's repo. If `UpstreamCommit` matches the loaded catalog, report "Catalog is up to date".
-2. Download `catalog.json`, validate it again on the device (section 6.3), show the summary, and apply as in section 6.5 steps 5 and 6.
-
-**Effect on the design:**
-
-| | Current (6.4 / 6.5) | Self-hosted (6.4a) |
-|---|---|---|
-| App depends on | gear-planner repo layout and format, plus the manifest | the owner's repo only |
-| Upstream moves or reshapes files | edit manifest (move) or ship an app release (format change) | fix the Action; no app change for either |
-| On-device conversion | yes | no, the app only validates |
-| Update manifest (6.4) | needed | removed |
-| Extra moving part | manifest file | the Action and its published output |
-| Permission from illusionistpm | granted (CC BY-SA 2.5, see section 1) | granted; the republished catalog must carry the same licence and credits |
-
-`CatalogConverter` stays in Core either way, because `tools/CatalogBuilder` still builds the built-in catalog shipped in the app.
+A Release is used rather than a branch, so each new 5 MB catalog does not add to the git history.
 
 ### 6.5 Run-time update flow
 
-1. Fetch the manifest (fallback to built-in values).
-2. Look up the latest commit touching each path. Take the newer of the two as the target commit. If it equals `Catalog.Version.UpstreamCommit`, report "Catalog is up to date" and stop.
-3. Download both files pinned to the target commit.
-4. Convert and validate.
-5. Show a summary: old and new dates, items added, items removed, number of the user's copies whose key is not in the new catalog, and any soft-rule findings. The user chooses **Apply** or **Cancel**.
-6. On Apply, write `catalog.json` in AppData via temp file and atomic replace, then reload.
+The app checks quietly when the Catalog screen first appears, at most once every 24 hours (time of the last check that reached GitHub, kept in preferences), and whenever the player taps **Check for catalog update** in Settings.
+
+1. Fetch `catalog-version.json`. If its `UpstreamCommit` equals `Catalog.Version.UpstreamCommit`, or its commit date is not newer, the catalog is up to date. Stop.
+2. If `FormatVersion` is too new, stop (see 6.4).
+3. Download `catalog.json`. If its own version is not newer, which can happen briefly while a release is uploading, the catalog is up to date.
+4. Validate it again on the device (6.3).
+5. Show a summary: old and new dates, items added and removed, number of the player's copies whose key is not in the new catalog, and any warnings. The player chooses **Update** or **Not now**.
+6. On Update, write `catalog.json` in AppData via a temp file and atomic replace, then swap it into the session. Every screen refreshes, including filter options.
+
+The quiet startup check says nothing unless there is an update to offer.
+
+At startup the app uses the AppData catalog only if it reads correctly and its upstream commit date is newer than the built-in catalog's. An app update that ships a newer built-in catalog is therefore never hidden by an older download.
 
 ### 6.6 Failure handling
 
 | Situation | Behaviour |
 |---|---|
-| No network, GitHub unreachable, HTTP error, rate-limited | Message "Couldn't reach GitHub, try again later". Nothing changes. |
+| No network, GitHub unreachable, HTTP error, nothing published yet | Message "Couldn't reach GitHub, try again later" when the player asked; silent at startup. Nothing changes, and the 24-hour startup interval is not restarted. |
+| Published catalog in a newer format | "Update the app to get it" when the player asked; silent at startup. |
 | Validation hard rule fails | Update refused, reason shown (for example "item count dropped from 8,207 to 312"). Current catalog kept. |
-| AppData `catalog.json` missing or unreadable at start-up | Load the built-in catalog and tell the user once. |
+| AppData `catalog.json` unreadable at start-up | Load the built-in catalog and tell the user once. |
 | User chooses Reset to built-in catalog | Delete AppData `catalog.json`, load built-in. |
 
 A catalog update never modifies user data. Copies whose `ItemKey` is not in the loaded catalog are shown with their `ItemName` snapshot and flagged "Not in current catalog".
@@ -372,4 +351,3 @@ Manual UI checklist on Windows and Android before each release: browse and filte
 ## 9. Open items
 
 - Final app name and icon.
-- Choose between the upstream manifest (6.4) and the self-hosted catalog (6.4a) before implementing the update feature.

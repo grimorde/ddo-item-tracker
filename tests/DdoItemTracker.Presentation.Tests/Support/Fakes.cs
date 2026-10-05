@@ -1,3 +1,4 @@
+using DdoItemTracker.Core.Catalog;
 using DdoItemTracker.Presentation.Services;
 
 namespace DdoItemTracker.Presentation.Tests.Support;
@@ -79,4 +80,20 @@ internal sealed class FakeSettings : ISettingsStore
     public string? LastServer { get; set; }
     public string? LastHeldIn { get; set; }
     public string? LastStorage { get; set; }
+    public DateTimeOffset? LastCatalogCheckUtc { get; set; }
+}
+
+/// <summary>Returns <see cref="Result"/> for every check and counts the calls.</summary>
+internal sealed class FakeCatalogChecker : ICatalogUpdateChecker
+{
+    public CatalogCheckResult Result { get; set; } = new CatalogCheckResult.UpToDate();
+    public int Calls { get; private set; }
+    public List<string> LastOwnedKeys { get; private set; } = [];
+
+    public Task<CatalogCheckResult> CheckAsync(ItemCatalog current, IEnumerable<string> ownedItemKeys, CancellationToken cancellationToken = default)
+    {
+        Calls++;
+        LastOwnedKeys = ownedItemKeys.ToList();
+        return Task.FromResult(Result);
+    }
 }

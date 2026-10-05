@@ -1,0 +1,80 @@
+# Rebuilds the item catalog from ddo-gear-planner and publishes it to the rolling "catalog-latest"
+# release, where the app looks for updates. Nothing is published when upstream hasn't changed, and a
+# catalog that fails validation fails the run (so GitHub emails the repo owner) instead of being published.
+name: Publish catalog
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # after gear-planner's daily 05:18 UTC data run
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-catalog
+  cancel-in-progress: false
+
+env:
+  TAG: catalog-latest
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Get the currently published catalog
+        id: previous
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p previous out
+          if gh release download "$TAG" --pattern catalog.json --dir previous; then
+            echo "args=--previous previous/catalog.json" >> "$GITHUB_OUTPUT"
+          else
+            # First publish: nothing to compare against, so publish whatever upstream has now.
+            echo "No published catalog yet."
+            echo "args=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build catalog
+        id: build
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          dotnet run --project tools/CatalogBuilder -c Release -- \
+            --out out/catalog.json --version-out out/catalog-version.json ${{ steps.previous.outputs.args }}
+          code=$?
+          set -e
+          if [ "$code" -eq 3 ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$code" -ne 0 ]; then exit "$code"; fi
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to the catalog-latest release
+        if: steps.build.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view "$TAG" > /dev/null 2>&1; then
+            gh release create "$TAG" --title "Item catalog" --latest=false --notes-file - <<'EOF'
+          The item catalog DDO Item Tracker downloads when it checks for updates. The Publish catalog workflow checks
+          ddo-gear-planner every day and replaces it only when the data has changed, usually after a game update.
+
+          Item and set data comes from [DDO Gear Planner](https://github.com/illusionistpm/ddo-gear-planner) by
+          illusionistpm, which is built from [DDO Wiki](https://ddowiki.com). It is shared under
+          [CC BY-SA 2.5](https://creativecommons.org/licenses/by-sa/2.5/) and has been converted for this app.
+          EOF
+          fi
+          # catalog.json goes first, so the version file never points at a catalog that isn't there yet.
+          gh release upload "$TAG" out/catalog.json --clobber
+          gh release upload "$TAG" out/catalog-version.json --clobber
+          cat out/catalog-version.json

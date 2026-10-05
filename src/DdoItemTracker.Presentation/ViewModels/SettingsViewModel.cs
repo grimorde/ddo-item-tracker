@@ -7,7 +7,8 @@ using DdoItemTracker.Presentation.State;
 
 namespace DdoItemTracker.Presentation.ViewModels;
 
-public partial class SettingsViewModel(TrackerSession session, IDialogService dialogs, IFileService files, TimeProvider clock)
+public partial class SettingsViewModel(TrackerSession session, IDialogService dialogs, IFileService files, TimeProvider clock,
+    CatalogUpdateCoordinator catalogUpdates)
     : SessionViewModel(session, dialogs)
 {
     public const string MergeOption = "Merge with what's here";
@@ -20,8 +21,15 @@ public partial class SettingsViewModel(TrackerSession session, IDialogService di
         var version = Session.Catalog.Catalog.Version;
         var commit = version.UpstreamCommit.Length > 7 ? version.UpstreamCommit[..7] : version.UpstreamCommit;
         var date = version.UpstreamCommitDateUtc.ToString("d MMM yyyy", CultureInfo.InvariantCulture);
-        CatalogVersionText = $"Catalog from {date} ({commit}), {Session.Catalog.Catalog.Items.Count:N0} items";
+        var source = Session.CatalogIsDownloaded ? "updated" : "built-in";
+        CatalogVersionText = $"Catalog from {date} ({commit}, {source}), {Session.Catalog.Catalog.Items.Count:N0} items";
     }
+
+    [RelayCommand]
+    private Task CheckForCatalogUpdate() => catalogUpdates.CheckAsync(userInitiated: true);
+
+    [RelayCommand]
+    private Task ResetCatalog() => catalogUpdates.ResetToBuiltInAsync();
 
     public string BackupFileName() =>
         $"ddoitemtracker-backup-{clock.GetLocalNow().ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture)}.json";

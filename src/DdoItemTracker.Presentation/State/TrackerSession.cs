@@ -9,12 +9,14 @@ namespace DdoItemTracker.Presentation.State;
 /// The player's loaded data plus the catalog. Every change goes through <see cref="Apply{T}"/>,
 /// which runs the change, saves, and tells the screens to refresh. Saves are serialised.
 /// </summary>
-public sealed class TrackerSession(TrackerStore store, CatalogIndex catalog)
+/// <param name="catalogIsDownloaded">True when <paramref name="catalog"/> is a downloaded update rather than the built-in one.</param>
+public sealed class TrackerSession(TrackerStore store, CatalogIndex catalog, bool catalogIsDownloaded = false)
 {
     private readonly object _gate = new();
     private bool _startupMessageTaken;
 
-    public CatalogIndex Catalog { get; } = catalog;
+    public CatalogIndex Catalog { get; private set; } = catalog;
+    public bool CatalogIsDownloaded { get; private set; } = catalogIsDownloaded;
     public TrackerData Data { get; private set; } = new();
     public LoadResult? LastLoad { get; private set; }
     public event EventHandler? Changed;
@@ -45,6 +47,17 @@ public sealed class TrackerSession(TrackerStore store, CatalogIndex catalog)
         }
         Changed?.Invoke(this, EventArgs.Empty);
         return result;
+    }
+
+    /// <summary>Swaps in another catalog and tells the screens to refresh. The player's data is not touched.</summary>
+    public void ReplaceCatalog(CatalogIndex catalog, bool isDownloaded)
+    {
+        lock (_gate)
+        {
+            Catalog = catalog;
+            CatalogIsDownloaded = isDownloaded;
+        }
+        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     private static TrackerData Clone(TrackerData data) =>

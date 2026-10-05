@@ -34,4 +34,6 @@ public interface ISettingsStore
     /// <summary>"shared" for the Shared Bank, a character id, or null.</summary>
     string? LastHeldIn { get; set; }
     string? LastStorage { get; set; }
+    /// <summary>When the app last reached GitHub to look for a catalog update.</summary>
+    DateTimeOffset? LastCatalogCheckUtc { get; set; }
 }

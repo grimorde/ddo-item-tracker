@@ -1,4 +1,5 @@
 using CommunityToolkit.Maui;
+using DdoItemTracker.Core.Catalog;
 using DdoItemTracker.Core.Persistence;
 using DdoItemTracker.Presentation.Services;
 using DdoItemTracker.Presentation.State;
@@ -26,12 +27,32 @@ public static class MauiProgram
 
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddSingleton(_ => new TrackerStore(FileSystem.AppDataDirectory));
+        builder.Services.AddSingleton(_ => new CatalogStore(FileSystem.AppDataDirectory));
+        builder.Services.AddSingleton(sp => CatalogChoice.Choose(BuiltInCatalog.Read(), sp.GetRequiredService<CatalogStore>().Load()));
         builder.Services.AddSingleton(sp =>
         {
-            var session = new TrackerSession(sp.GetRequiredService<TrackerStore>(), BuiltInCatalog.Load());
+            var choice = sp.GetRequiredService<CatalogChoice>();
+            var session = new TrackerSession(sp.GetRequiredService<TrackerStore>(), new CatalogIndex(choice.Catalog), choice.IsDownloaded);
             session.Load();
             return session;
         });
+        builder.Services.AddSingleton(_ =>
+        {
+            var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
+            http.DefaultRequestHeaders.UserAgent.TryParseAdd($"DdoItemTracker/{AppInfo.Current.VersionString}");
+            return http;
+        });
+        builder.Services.AddSingleton<ICatalogUpdateChecker>(sp =>
+            new CatalogUpdateChecker(sp.GetRequiredService<HttpClient>(), PublishedCatalogSource.Default));
+        builder.Services.AddSingleton(sp => new CatalogUpdateCoordinator(
+            sp.GetRequiredService<TrackerSession>(),
+            sp.GetRequiredService<CatalogStore>(),
+            sp.GetRequiredService<ICatalogUpdateChecker>(),
+            BuiltInCatalog.Read,
+            sp.GetRequiredService<IDialogService>(),
+            sp.GetRequiredService<ISettingsStore>(),
+            sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<CatalogChoice>().StoredWasUnreadable));
 
         builder.Services.AddSingleton<IDialogService, MauiDialogService>();
         builder.Services.AddSingleton<INavigator, ShellNavigator>();

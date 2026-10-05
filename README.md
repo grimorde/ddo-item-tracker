@@ -28,8 +28,18 @@ The item catalog (`src/DdoItemTracker/Resources/Raw/catalog.json`) is converted 
 
 Android: `dotnet build src/DdoItemTracker -f net10.0-android`. iOS needs a paired Mac.
 
+## Catalog updates
+
+The app does not need a new build when items change in the game. The **Publish catalog** workflow (`.github/workflows/publish-catalog.yml`) checks ddo-gear-planner every day at 06:00 UTC. Most days nothing has changed and nothing is published. When the data has changed, usually after a game update, and the rebuilt catalog passes validation, the workflow uploads `catalog.json` and `catalog-version.json` to the `catalog-latest` release. The app checks that release once a day when it starts, and from **Settings > Check for catalog update**.
+
+To publish straight away, open **Actions > Publish catalog > Run workflow** on GitHub. If validation fails, the run fails and nothing is published.
+
 ## Refresh the built-in catalog
 
+The built-in catalog is what a new install starts with, and what **Reset to built-in catalog** goes back to. Refresh it before a release:
+
     dotnet run --project tools/CatalogBuilder -- --out src/DdoItemTracker/Resources/Raw/catalog.json
+
+The builder exits with 3 and writes nothing when the catalog is already at the latest upstream commit.
 
 See `docs/superpowers/specs/` for the design.

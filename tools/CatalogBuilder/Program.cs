@@ -4,11 +4,15 @@ using DdoItemTracker.Core.Catalog;
 
 const string Usage = """
     Usage:
-      CatalogBuilder --out <catalog.json> [--commit <sha>] [--previous <catalog.json>]
-      CatalogBuilder --out <catalog.json> --items <items.json> --sets <sets.json> --commit <sha> --date <iso-date> [--previous <catalog.json>]
+      CatalogBuilder --out <catalog.json> [--commit <sha>] [--previous <catalog.json>] [--version-out <catalog-version.json>]
+      CatalogBuilder --out <catalog.json> --items <items.json> --sets <sets.json> --commit <sha> --date <iso-date> [--previous <catalog.json>] [--version-out <catalog-version.json>]
 
     Without --items/--sets the upstream files are downloaded pinned to --commit, or to the latest commit that changed them.
     --previous defaults to the existing --out file, so the item-count rule compares against the catalog being replaced.
+    --version-out also writes the small version file the app checks before downloading a published catalog.
+    The GITHUB_TOKEN environment variable, when set, is sent with GitHub API calls to avoid rate limits.
+
+    Exit codes: 0 written, 1 validation failed, 2 usage error, 3 unchanged (--previous is already at the upstream commit).
     """;
 
 var opts = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -20,6 +24,10 @@ if (!opts.TryGetValue("--out", out var outPath))
 }
 
 var source = UpstreamSource.Default;
+var previousPath = opts.GetValueOrDefault("--previous") ?? outPath;
+ItemCatalog? previous = File.Exists(previousPath)
+    ? CatalogSerializer.Deserialize(await File.ReadAllTextAsync(previousPath))
+    : null;
 var built = DateTimeOffset.UtcNow;
 string itemsJson, setsJson;
 CatalogVersion version;
@@ -39,6 +47,8 @@ else
 {
     using var http = new HttpClient();
     http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("DdoItemTracker-CatalogBuilder", "1.0"));
+    if (Environment.GetEnvironmentVariable("GITHUB_TOKEN") is { Length: > 0 } token)
+        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
     GitHubCommitInfo commit;
     if (opts.TryGetValue("--commit", out var sha))
@@ -52,16 +62,17 @@ else
         commit = items.CommitDateUtc >= sets.CommitDateUtc ? items : sets;
     }
     Console.WriteLine($"Upstream commit {commit.Sha} ({commit.CommitDateUtc:yyyy-MM-dd})");
+    if (previous?.Version.UpstreamCommit == commit.Sha)
+    {
+        Console.WriteLine("Up to date, nothing written.");
+        return 3;
+    }
     itemsJson = await http.GetStringAsync(source.RawUrl(commit.Sha, source.ItemsPath));
     setsJson = await http.GetStringAsync(source.RawUrl(commit.Sha, source.SetsPath));
     version = new CatalogVersion(commit.Sha, commit.CommitDateUtc, built);
 }
 
 var result = CatalogConverter.Convert(itemsJson, setsJson, version);
-var previousPath = opts.GetValueOrDefault("--previous") ?? outPath;
-ItemCatalog? previous = File.Exists(previousPath)
-    ? CatalogSerializer.Deserialize(await File.ReadAllTextAsync(previousPath))
-    : null;
 var validation = CatalogValidator.Validate(result, previous);
 
 var r = result.Report;
@@ -81,4 +92,12 @@ var temp = fullOut + ".tmp";
 await File.WriteAllTextAsync(temp, CatalogSerializer.Serialize(result.Catalog));
 File.Move(temp, fullOut, overwrite: true);
 Console.WriteLine($"Wrote {fullOut}");
+
+if (opts.TryGetValue("--version-out", out var versionOut))
+{
+    var fullVersionOut = Path.GetFullPath(versionOut);
+    Directory.CreateDirectory(Path.GetDirectoryName(fullVersionOut)!);
+    await File.WriteAllTextAsync(fullVersionOut, PublishedCatalogVersion.For(result.Catalog).ToJson());
+    Console.WriteLine($"Wrote {fullVersionOut}");
+}
 return 0;

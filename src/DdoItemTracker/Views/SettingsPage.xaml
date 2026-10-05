@@ -107,6 +107,10 @@
                 <VerticalStackLayout Spacing="8">
                     <Label Text="Item catalog" Style="{StaticResource CardTitle}" />
                     <Label Text="{Binding CatalogVersionText}" />
+                    <Label Text="The catalog is updated when new items come to the game. The app checks for an update once a day when it starts, or you can check now." Style="{StaticResource Secondary}" />
+                    <Button Text="Check for catalog update" Command="{Binding CheckForCatalogUpdateCommand}" Style="{StaticResource SecondaryButton}" />
+                    <ActivityIndicator IsRunning="{Binding CheckForCatalogUpdateCommand.IsRunning}" IsVisible="{Binding CheckForCatalogUpdateCommand.IsRunning}" HorizontalOptions="Center" />
+                    <Button Text="Reset to built-in catalog" Command="{Binding ResetCatalogCommand}" Style="{StaticResource TertiaryButton}" />
                     <Label Text="Item and set data comes from DDO Gear Planner by illusionistpm, which is built from DDO Wiki. It is shared under CC BY-SA 2.5 and has been converted for this app." Style="{StaticResource Secondary}" />
                     <VerticalStackLayout>
                         <Button Text="DDO Gear Planner" Clicked="OnGearPlannerClicked" Style="{StaticResource LinkButton}" HorizontalOptions="Start" />
