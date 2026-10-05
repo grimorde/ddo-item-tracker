@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFrameworks>net10.0-android</TargetFrameworks>
@@ -28,6 +28,11 @@
   <PropertyGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
     <WindowsPackageType Condition="'$(Configuration)' == 'Debug'">None</WindowsPackageType>
     <WindowsPackageType Condition="'$(Configuration)' != 'Debug'">MSIX</WindowsPackageType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net10.0-ios' And '$(Configuration)'=='Debug'">
+    <ProvisioningType>manual</ProvisioningType>
+    <CodesignProvision></CodesignProvision>
   </PropertyGroup>
 
   <ItemGroup>
