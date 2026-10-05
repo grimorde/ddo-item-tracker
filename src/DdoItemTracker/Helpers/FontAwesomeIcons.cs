@@ -13,4 +13,5 @@ public static class FontAwesomeIcons
     public const string UserGear = "\uf4fe";
     public const string Sun = "\uf185";
     public const string Moon = "\uf186";
+    public const string Xmark = "\uf00d";
 }

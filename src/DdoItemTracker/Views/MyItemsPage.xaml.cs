@@ -50,7 +50,15 @@ public partial class MyItemsPage : ContentPage
             return;
         }
         CopyList.ClearSelection();
+        await HideKeyboardAsync();
         await _viewModel.OpenCopyCommand.ExecuteAsync(row);
+    }
+
+    /// <summary>Selecting a copy does not take focus from the search box, so the keyboard would follow us to the item page.</summary>
+    private async Task HideKeyboardAsync()
+    {
+        if (SearchEntry.IsSoftInputShowing()) await SearchEntry.HideSoftInputAsync(CancellationToken.None);
+        SearchEntry.Unfocus();
     }
 
     private void OnFiltersClicked(object? sender, EventArgs e)
@@ -58,6 +66,12 @@ public partial class MyItemsPage : ContentPage
         FilterArea.IsVisible = !FilterArea.IsVisible;
         FiltersButton.Text = FilterArea.IsVisible ? "Hide filters" : "Show filters";
     }
+
+    private void OnSearchTextChanged(object? sender, TextChangedEventArgs e) =>
+        ClearSearchButton.IsVisible = !string.IsNullOrEmpty(e.NewTextValue);
+
+    /// <summary>Clears the search without focusing the box, so the keyboard stays closed.</summary>
+    private void OnClearSearchClicked(object? sender, EventArgs e) => SearchEntry.Text = string.Empty;
 
     private async void OnSettingsClicked(object? sender, EventArgs e) => await Shell.Current.GoToAsync(nameof(SettingsPage));
 }
