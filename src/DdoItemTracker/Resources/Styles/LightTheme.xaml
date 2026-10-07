@@ -17,4 +17,5 @@
     <Color x:Key="Danger">#E74C3C</Color>
     <Color x:Key="Success">#27AE60</Color>
     <Color x:Key="TabInactive">#F3F2F1</Color>
+    <Color x:Key="TabUnselected">#6E7781</Color>
 </ResourceDictionary>
