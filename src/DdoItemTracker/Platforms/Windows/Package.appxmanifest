@@ -6,7 +6,7 @@
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   IgnorableNamespaces="uap rescap">
 
-  <Identity Name="60472grimorde.DDOItemTracker" Publisher="CN=7D84C492-D030-4264-8C63-275B6E7A1EAE" Version="1.1.1.0" />
+  <Identity Name="60472grimorde.DDOItemTracker" Publisher="CN=7D84C492-D030-4264-8C63-275B6E7A1EAE" Version="1.1.3.0" />
 
   <mp:PhoneIdentity PhoneProductId="7be43459-4ab5-417e-b552-f0a1acdfc7f7" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
