@@ -11,19 +11,37 @@ public sealed record ConversionReport(
 
 public sealed record ConversionResult(ItemCatalog Catalog, ConversionReport Report);
 
-/// <summary>Turns gear-planner's items.json and sets.json into an <see cref="ItemCatalog"/>.</summary>
+/// <summary>Turns gear-planner's items.json, sets.json and quests.json into an <see cref="ItemCatalog"/>.</summary>
 public static class CatalogConverter
 {
     private const string WikiBase = "https://ddowiki.com";
 
-    public static ConversionResult Convert(string itemsJson, string setsJson, CatalogVersion version)
+    /// <summary>
+    /// Upstream maps these quest chains to packs of their own, but they are story arcs inside a pack.
+    /// Remove an entry once gear-planner's quests.json maps the chain to its parent pack.
+    /// </summary>
+    private static readonly Dictionary<string, string> PackCorrections = new(StringComparer.Ordinal)
+    {
+        ["Shadow Over Wheloon"] = "Shadowfell Conspiracy",
+        ["The Secret of the Storm Horns"] = "Shadowfell Conspiracy",
+    };
+
+    /// <param name="questsJson">
+    /// quests.json, whose "packs" map gives each source its pack. Items stopped carrying "pack" in November 2026;
+    /// an item that still has one keeps it.
+    /// </param>
+    public static ConversionResult Convert(string itemsJson, string setsJson, string questsJson, CatalogVersion version)
     {
         using var itemsDoc = ParseDocument(itemsJson, "items");
         using var setsDoc = ParseDocument(setsJson, "sets");
+        using var questsDoc = ParseDocument(questsJson, "quests");
         if (itemsDoc.RootElement.ValueKind != JsonValueKind.Array)
             throw new InvalidDataException("The items file is not a JSON array.");
         if (setsDoc.RootElement.ValueKind != JsonValueKind.Object)
             throw new InvalidDataException("The sets file is not a JSON object.");
+        if (questsDoc.RootElement.ValueKind != JsonValueKind.Object)
+            throw new InvalidDataException("The quests file is not a JSON object.");
+        var sourcePacks = GetSourcePacks(questsDoc.RootElement);
 
         var byKey = new Dictionary<string, CatalogItem>(StringComparer.Ordinal);
         var duplicateKeys = new SortedSet<string>(StringComparer.Ordinal);
@@ -32,7 +50,7 @@ public static class CatalogConverter
         foreach (var element in itemsDoc.RootElement.EnumerateArray())
         {
             input++;
-            var item = MapItem(element);
+            var item = MapItem(element, sourcePacks);
             if (item is null)
             {
                 invalid++;
@@ -82,7 +100,27 @@ public static class CatalogConverter
         }
     }
 
-    private static CatalogItem? MapItem(JsonElement e)
+    private static Dictionary<string, string> GetSourcePacks(JsonElement quests)
+    {
+        var map = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (!quests.TryGetProperty("packs", out var packs) || packs.ValueKind != JsonValueKind.Object) return map;
+        foreach (var p in packs.EnumerateObject())
+        {
+            if (NullIfBlank(p.Value.ValueKind == JsonValueKind.String ? p.Value.GetString() : null) is { } pack)
+                map[p.Name.Trim()] = pack;
+        }
+        return map;
+    }
+
+    /// <summary>The item's own "pack" if it has one, otherwise the pack of its first source that has one.</summary>
+    private static string? ResolvePack(JsonElement e, IReadOnlyList<string> quests, Dictionary<string, string> sourcePacks)
+    {
+        var pack = NullIfBlank(GetString(e, "pack"))
+            ?? quests.Select(q => sourcePacks.GetValueOrDefault(q)).FirstOrDefault(p => p is not null);
+        return pack is not null && PackCorrections.TryGetValue(pack, out var corrected) ? corrected : pack;
+    }
+
+    private static CatalogItem? MapItem(JsonElement e, Dictionary<string, string> sourcePacks)
     {
         if (e.ValueKind != JsonValueKind.Object) return null;
         var name = GetString(e, "name")?.Trim();
@@ -91,6 +129,7 @@ public static class CatalogConverter
         if (!e.TryGetProperty("ml", out var ml) || ml.ValueKind != JsonValueKind.Number || !ml.TryGetInt32(out var minLevel))
             return null;
 
+        var quests = GetStrings(e, "quests");
         return new CatalogItem
         {
             Key = ItemKey.For(name, minLevel, slot),
@@ -98,8 +137,8 @@ public static class CatalogConverter
             MinLevel = minLevel,
             Slot = slot,
             Type = NullIfBlank(GetString(e, "type")),
-            Pack = NullIfBlank(GetString(e, "pack")),
-            Quests = GetStrings(e, "quests"),
+            Pack = ResolvePack(e, quests, sourcePacks),
+            Quests = quests,
             Effects = GetEffects(e),
             CraftingSlots = GetStrings(e, "crafting"),
             SetNames = GetStrings(e, "sets"),

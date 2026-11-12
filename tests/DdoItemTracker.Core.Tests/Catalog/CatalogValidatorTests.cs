@@ -50,6 +50,20 @@ public class CatalogValidatorTests
     }
 
     [Fact]
+    public void AllPacksLost_Fails()
+    {
+        var current = TestCatalogs.Catalog([TestCatalogs.Item("A", pack: "Vecna Unleashed"), TestCatalogs.Item("B")]);
+        var result = CatalogValidator.Validate(TestCatalogs.Catalog([TestCatalogs.Item("A"), TestCatalogs.Item("B")]), current);
+        Assert.Contains("No item has a pack.", result.Errors);
+    }
+
+    [Fact]
+    public void NoPacksInEitherCatalog_Passes()
+    {
+        Assert.True(CatalogValidator.Validate(TestCatalogs.WithItemCount(10), TestCatalogs.WithItemCount(10)).IsValid);
+    }
+
+    [Fact]
     public void NoCurrentCatalog_SkipsCountRule()
     {
         Assert.True(CatalogValidator.Validate(TestCatalogs.WithItemCount(1), null).IsValid);

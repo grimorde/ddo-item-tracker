@@ -29,6 +29,10 @@ public static class CatalogValidator
             && (long)candidate.Items.Count * 100 < (long)current.Items.Count * MinimumRetainedPercent)
             errors.Add(FormattableString.Invariant($"Item count dropped from {current.Items.Count:N0} to {candidate.Items.Count:N0}."));
 
+        // Catches upstream renaming or moving the data packs come from, which would otherwise empty the pack filter.
+        if (current is not null && current.Items.Any(i => i.Pack is not null) && candidate.Items.All(i => i.Pack is null))
+            errors.Add("No item has a pack.");
+
         return new ValidationResult(errors, []);
     }
 
