@@ -4,12 +4,13 @@ using DdoItemTracker.Core.Catalog;
 
 const string Usage = """
     Usage:
-      CatalogBuilder --out <catalog.json> [--commit <sha>] [--previous <catalog.json>] [--version-out <catalog-version.json>]
+      CatalogBuilder --out <catalog.json> [--commit <sha>] [--previous <catalog.json>] [--version-out <catalog-version.json>] [--force true]
       CatalogBuilder --out <catalog.json> --items <items.json> --sets <sets.json> [--quests <quests.json>] --commit <sha> --date <iso-date> [--previous <catalog.json>] [--version-out <catalog-version.json>]
 
     Without --items/--sets the upstream files are downloaded pinned to --commit, or to the latest commit that changed them.
     --quests gives items their packs; without it only items that carry their own "pack" (data before November 2026) get one.
     --previous defaults to the existing --out file, so the item-count rule compares against the catalog being replaced.
+    --force true rebuilds even when --previous is already at the upstream commit, to republish after a converter fix.
     --version-out also writes the small version file the app checks before downloading a published catalog.
     The GITHUB_TOKEN environment variable, when set, is sent with GitHub API calls to avoid rate limits.
 
@@ -65,7 +66,7 @@ else
         commit = latest.MaxBy(c => c.CommitDateUtc)!;
     }
     Console.WriteLine($"Upstream commit {commit.Sha} ({commit.CommitDateUtc:yyyy-MM-dd})");
-    if (previous?.Version.UpstreamCommit == commit.Sha)
+    if (previous?.Version.UpstreamCommit == commit.Sha && opts.GetValueOrDefault("--force") != "true")
     {
         Console.WriteLine("Up to date, nothing written.");
         return 3;

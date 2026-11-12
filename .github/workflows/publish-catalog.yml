@@ -7,6 +7,11 @@ on:
   schedule:
     - cron: "0 6 * * *" # after gear-planner's daily 05:18 UTC data run
   workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild and republish even if upstream hasn't changed (after a converter fix)
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -49,7 +54,7 @@ jobs:
         run: |
           set +e
           dotnet run --project tools/CatalogBuilder -c Release -- \
-            --out out/catalog.json --version-out out/catalog-version.json ${{ steps.previous.outputs.args }}
+            --out out/catalog.json --version-out out/catalog-version.json ${{ steps.previous.outputs.args }}             ${{ inputs.force && '--force true' || '' }}
           code=$?
           set -e
           if [ "$code" -eq 3 ]; then
