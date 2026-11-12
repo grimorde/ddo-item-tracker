@@ -14,5 +14,5 @@ internal static class Fixtures
         DateTimeOffset.UnixEpoch);
 
     public static ConversionResult ConvertSample() =>
-        CatalogConverter.Convert(Read("items.sample.json"), Read("sets.sample.json"), Version);
+        CatalogConverter.Convert(Read("items.sample.json"), Read("sets.sample.json"), "{}", Version);
 }

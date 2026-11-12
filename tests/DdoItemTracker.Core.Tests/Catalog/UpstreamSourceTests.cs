@@ -12,6 +12,7 @@ public class UpstreamSourceTests
         Assert.Equal("master", s.Branch);
         Assert.Equal("data/items.json", s.ItemsPath);
         Assert.Equal("data/sets.json", s.SetsPath);
+        Assert.Equal("data/quests.json", s.QuestsPath);
     }
 
     [Fact]

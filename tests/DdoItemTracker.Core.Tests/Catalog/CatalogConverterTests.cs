@@ -74,7 +74,7 @@ public class CatalogConverterTests
     public void NumericAffixValue_IsStoredAsText()
     {
         const string items = """[{"name":"X","ml":1,"slot":"Ring","affixes":[{"name":"Strength","type":"Enhancement","value":3}]}]""";
-        var r = CatalogConverter.Convert(items, "{}", Fixtures.Version);
+        var r = CatalogConverter.Convert(items, "{}", "{}", Fixtures.Version);
         Assert.Equal("3", r.Catalog.Items[0].Effects[0].Value);
     }
 
@@ -100,7 +100,7 @@ public class CatalogConverterTests
             [{"name":"X","ml":1,"slot":"Ring","affixes":[{"name":"Strength","type":"Enhancement","value":"3"}]},
              {"name":"X","ml":1,"slot":"Ring","affixes":[{"name":"Strength","type":"Enhancement","value":"4"}]}]
             """;
-        var r = CatalogConverter.Convert(items, "{}", Fixtures.Version);
+        var r = CatalogConverter.Convert(items, "{}", "{}", Fixtures.Version);
 
         Assert.Equal(["X|1|Ring"], r.Report.DuplicateKeys);
         Assert.Equal(0, r.Report.DroppedDuplicate);
@@ -124,12 +124,49 @@ public class CatalogConverterTests
             names);
     }
 
-    [Theory]
-    [InlineData("not json", "{}")]
-    [InlineData("{}", "{}")]      // items must be an array
-    [InlineData("[]", "[]")]      // sets must be an object
-    public void MalformedInput_ThrowsInvalidDataException(string items, string sets)
+    private const string Quests = """
+        {"packs":{"The Thrill of the Hunt":"Shadowfell Conspiracy","Shadow Over Wheloon":"Shadow Over Wheloon","Taken in Hand":"Vecna Unleashed"},
+         "freeSources":["Korthos Island"]}
+        """;
+
+    private static string? PackOf(string itemJson) =>
+        Assert.Single(CatalogConverter.Convert($"[{itemJson}]", "{}", Quests, Fixtures.Version).Catalog.Items).Pack;
+
+    [Fact]
+    public void Pack_ComesFromFirstSourceWithAPack()
     {
-        Assert.Throws<InvalidDataException>(() => CatalogConverter.Convert(items, sets, Fixtures.Version));
+        Assert.Equal("Vecna Unleashed", PackOf("""{"name":"X","ml":1,"slot":"Ring","quests":["Korthos Island","Taken in Hand"]}"""));
+    }
+
+    [Fact]
+    public void Pack_ItemsOwnPackWinsOverItsSources()
+    {
+        Assert.Equal("Demon Sands", PackOf("""{"name":"X","ml":1,"slot":"Ring","pack":"Demon Sands","quests":["Taken in Hand"]}"""));
+    }
+
+    [Fact]
+    public void Pack_StoryArcIsCorrectedToItsParentPack()
+    {
+        Assert.Equal("Shadowfell Conspiracy", PackOf("""{"name":"X","ml":14,"slot":"Weapon","quests":["Shadow Over Wheloon","The Thrill of the Hunt"]}"""));
+    }
+
+    [Theory]
+    [InlineData("""{"name":"X","ml":1,"slot":"Ring","quests":["Korthos Island"]}""")]   // free source
+    [InlineData("""{"name":"X","ml":1,"slot":"Ring","quests":["Unknown Vendor"]}""")]   // unresolved source
+    [InlineData("""{"name":"X","ml":1,"slot":"Ring"}""")]                               // no sources
+    public void Pack_IsNullWhenNoSourceHasAPack(string itemJson)
+    {
+        Assert.Null(PackOf(itemJson));
+    }
+
+    [Theory]
+    [InlineData("not json", "{}", "{}")]
+    [InlineData("{}", "{}", "{}")]      // items must be an array
+    [InlineData("[]", "[]", "{}")]      // sets must be an object
+    [InlineData("[]", "{}", "[]")]      // quests must be an object
+    [InlineData("[]", "{}", "not json")]
+    public void MalformedInput_ThrowsInvalidDataException(string items, string sets, string quests)
+    {
+        Assert.Throws<InvalidDataException>(() => CatalogConverter.Convert(items, sets, quests, Fixtures.Version));
     }
 }

@@ -5,9 +5,10 @@ using DdoItemTracker.Core.Catalog;
 const string Usage = """
     Usage:
       CatalogBuilder --out <catalog.json> [--commit <sha>] [--previous <catalog.json>] [--version-out <catalog-version.json>]
-      CatalogBuilder --out <catalog.json> --items <items.json> --sets <sets.json> --commit <sha> --date <iso-date> [--previous <catalog.json>] [--version-out <catalog-version.json>]
+      CatalogBuilder --out <catalog.json> --items <items.json> --sets <sets.json> [--quests <quests.json>] --commit <sha> --date <iso-date> [--previous <catalog.json>] [--version-out <catalog-version.json>]
 
     Without --items/--sets the upstream files are downloaded pinned to --commit, or to the latest commit that changed them.
+    --quests gives items their packs; without it only items that carry their own "pack" (data before November 2026) get one.
     --previous defaults to the existing --out file, so the item-count rule compares against the catalog being replaced.
     --version-out also writes the small version file the app checks before downloading a published catalog.
     The GITHUB_TOKEN environment variable, when set, is sent with GitHub API calls to avoid rate limits.
@@ -29,7 +30,7 @@ ItemCatalog? previous = File.Exists(previousPath)
     ? CatalogSerializer.Deserialize(await File.ReadAllTextAsync(previousPath))
     : null;
 var built = DateTimeOffset.UtcNow;
-string itemsJson, setsJson;
+string itemsJson, setsJson, questsJson;
 CatalogVersion version;
 
 if (opts.TryGetValue("--items", out var itemsPath) | opts.TryGetValue("--sets", out var setsPath))
@@ -41,6 +42,7 @@ if (opts.TryGetValue("--items", out var itemsPath) | opts.TryGetValue("--sets", 
     }
     itemsJson = await File.ReadAllTextAsync(itemsPath);
     setsJson = await File.ReadAllTextAsync(setsPath);
+    questsJson = opts.TryGetValue("--quests", out var questsPath) ? await File.ReadAllTextAsync(questsPath) : "{}";
     version = new CatalogVersion(sha, DateTimeOffset.Parse(date, CultureInfo.InvariantCulture).ToUniversalTime(), built);
 }
 else
@@ -57,9 +59,10 @@ else
     }
     else
     {
-        var items = GitHubCommitInfo.Parse(await http.GetStringAsync(source.LatestCommitApiUrl(source.ItemsPath)));
-        var sets = GitHubCommitInfo.Parse(await http.GetStringAsync(source.LatestCommitApiUrl(source.SetsPath)));
-        commit = items.CommitDateUtc >= sets.CommitDateUtc ? items : sets;
+        var latest = new List<GitHubCommitInfo>();
+        foreach (var path in new[] { source.ItemsPath, source.SetsPath, source.QuestsPath })
+            latest.Add(GitHubCommitInfo.Parse(await http.GetStringAsync(source.LatestCommitApiUrl(path))));
+        commit = latest.MaxBy(c => c.CommitDateUtc)!;
     }
     Console.WriteLine($"Upstream commit {commit.Sha} ({commit.CommitDateUtc:yyyy-MM-dd})");
     if (previous?.Version.UpstreamCommit == commit.Sha)
@@ -69,10 +72,11 @@ else
     }
     itemsJson = await http.GetStringAsync(source.RawUrl(commit.Sha, source.ItemsPath));
     setsJson = await http.GetStringAsync(source.RawUrl(commit.Sha, source.SetsPath));
+    questsJson = await http.GetStringAsync(source.RawUrl(commit.Sha, source.QuestsPath));
     version = new CatalogVersion(commit.Sha, commit.CommitDateUtc, built);
 }
 
-var result = CatalogConverter.Convert(itemsJson, setsJson, version);
+var result = CatalogConverter.Convert(itemsJson, setsJson, questsJson, version);
 var validation = CatalogValidator.Validate(result, previous);
 
 var r = result.Report;

@@ -1,10 +1,10 @@
 namespace DdoItemTracker.Core.Catalog;
 
 /// <summary>Where the gear-planner data lives on GitHub.</summary>
-public sealed record UpstreamSource(string Repo, string Branch, string ItemsPath, string SetsPath)
+public sealed record UpstreamSource(string Repo, string Branch, string ItemsPath, string SetsPath, string QuestsPath)
 {
     public static UpstreamSource Default { get; } =
-        new("illusionistpm/ddo-gear-planner", "master", "data/items.json", "data/sets.json");
+        new("illusionistpm/ddo-gear-planner", "master", "data/items.json", "data/sets.json", "data/quests.json");
 
     public string RawUrl(string commit, string path) =>
         $"https://raw.githubusercontent.com/{Repo}/{commit}/{path}";
